@@ -22,9 +22,20 @@ export function FavouritesScreen() {
   const { themed } = useAppTheme()
   const [courses, setCourses] = useState<CourseSummary[]>([])
   useEffect(() => {
-    getLatestTermCode(db).then((termCode) =>
-      searchCourses(db, { codes, termCode }).then((result) => setCourses(result.rows)),
-    )
+    let cancelled = false
+    const load = async () => {
+      try {
+        const termCode = await getLatestTermCode(db)
+        const result = await searchCourses(db, { codes, termCode })
+        if (!cancelled) setCourses(result.rows)
+      } catch {
+        if (!cancelled) setCourses([])
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
   }, [codes, db])
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]}>

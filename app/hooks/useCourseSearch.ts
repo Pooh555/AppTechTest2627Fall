@@ -82,7 +82,10 @@ export function useCourseSearch(db: SQLiteDatabase, params: SearchCoursesParams)
           }
         })
     }, 120)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      if (requestId.current === id) requestId.current += 1
+    }
   }, [codes, codesKey, db, departmentCode, filters, filtersKey, limit, query, termCode])
 
   const loadMore = useCallback(() => {

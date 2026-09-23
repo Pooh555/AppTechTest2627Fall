@@ -8,7 +8,7 @@ const FAVOURITES_KEY = "FavouritesProvider.codes"
 function parseCodes(raw?: string): string[] {
   if (!raw) return []
   try {
-    const parsed = JSON.parse(raw) as unknown
+    const parsed: unknown = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []
   } catch {
     return []
@@ -31,10 +31,13 @@ export const FavouritesProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const toggleFavourite = useCallback(
     (code: string) => {
-      const next = codes.includes(code) ? codes.filter((item) => item !== code) : [...codes, code]
+      const currentCodes = parseCodes(storage.getString(FAVOURITES_KEY))
+      const next = currentCodes.includes(code)
+        ? currentCodes.filter((item) => item !== code)
+        : [...currentCodes, code]
       setRaw(JSON.stringify(next))
     },
-    [codes, setRaw],
+    [setRaw],
   )
 
   const value = useMemo(

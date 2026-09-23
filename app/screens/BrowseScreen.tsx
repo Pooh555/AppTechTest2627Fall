@@ -47,15 +47,22 @@ export function BrowseScreen() {
   })
 
   useEffect(() => {
+    let cancelled = false
     Promise.all([getDepartments(db), getTerms(db)])
       .then(([nextDepartments, nextTerms]) => {
+        if (cancelled) return
         setDepartments(nextDepartments)
         setTerms(nextTerms)
         setTerm(nextTerms[0]?.termCode ?? null)
       })
-      .catch((reason: unknown) =>
-        setMetadataError(reason instanceof Error ? reason.message : "Unable to load course data"),
-      )
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setMetadataError(reason instanceof Error ? reason.message : "Unable to load course data")
+        }
+      })
+    return () => {
+      cancelled = true
+    }
   }, [db])
 
   const onCoursePress = useCallback(
