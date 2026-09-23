@@ -8,6 +8,7 @@ import { CourseRow } from "@/components/CourseRow"
 import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
+import { TermSelector } from "@/components/TermSelector"
 import { Text } from "@/components/Text"
 import { useCourseSearch } from "@/hooks/useCourseSearch"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -77,16 +78,7 @@ export function BrowseScreen() {
           >
             <Text text={department ?? "All departments"} size="xs" />
           </Pressable>
-          {terms.map((item) => (
-            <Pressable
-              key={item.termCode}
-              testID={`term-${item.termCode}`}
-              onPress={() => setTerm(item.termCode)}
-              style={[themed($chip), item.termCode === term ? themed($selected) : undefined]}
-            >
-              <Text text={item.termName.replace(/^\d{4}-\d{2}\s*/, "")} size="xxs" />
-            </Pressable>
-          ))}
+          <TermSelector terms={terms} selectedTerm={term} onSelect={setTerm} />
         </View>
       </View>
       {metadataError || error ? (
@@ -152,13 +144,4 @@ const $filter = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) =
   borderWidth: 1,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
-})
-const $chip = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  backgroundColor: colors.palette.neutral300,
-  borderRadius: 999,
-  paddingHorizontal: spacing.sm,
-  paddingVertical: spacing.xs,
-})
-const $selected = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  backgroundColor: colors.tint,
 })
