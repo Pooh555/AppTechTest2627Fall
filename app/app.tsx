@@ -18,8 +18,8 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { useCallback, useState } from "react"
-import { Pressable } from "react-native"
+import { useCallback, useEffect, useState } from "react"
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
@@ -31,6 +31,7 @@ import { Text } from "./components/Text"
 import { FavouritesProvider } from "./context/FavouritesContext"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
+import { colors as darkColors } from "./theme/colorsDark"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import * as storage from "./utils/storage"
@@ -72,16 +73,21 @@ export function App() {
   const onDatabaseError = useCallback((error: Error) => {
     setDatabaseError(error.message)
     setIsDatabaseReady(false)
+    void SplashScreen.hideAsync()
   }, [])
 
-  // Before we show the app, we have to wait for our state to be ready.
-  // In the meantime, don't render anything. This will be the background
-  // color set in native by rootView's background color.
-  // In iOS: application:didFinishLaunchingWithOptions:
-  // In Android: https://stackoverflow.com/a/45838109/204044
-  // You can replace with your own loading component if you wish.
+  useEffect(() => {
+    if (isNavigationStateRestored && (areFontsLoaded || fontLoadError)) {
+      void SplashScreen.hideAsync()
+    }
+  }, [areFontsLoaded, fontLoadError, isNavigationStateRestored])
+
   if (!isNavigationStateRestored || (!areFontsLoaded && !fontLoadError)) {
-    return null
+    return (
+      <View style={styles.bootScreen}>
+        <ActivityIndicator color="#8AB4FF" />
+      </View>
+    )
   }
 
   const linking = {
@@ -105,6 +111,7 @@ export function App() {
             >
               {databaseError ? (
                 <Pressable
+                  style={styles.retry}
                   accessibilityRole="button"
                   onPress={() => {
                     setDatabaseError(null)
@@ -128,3 +135,18 @@ export function App() {
     </SafeAreaProvider>
   )
 }
+
+const styles = StyleSheet.create({
+  bootScreen: {
+    alignItems: "center",
+    backgroundColor: darkColors.background,
+    flex: 1,
+    justifyContent: "center",
+  },
+  retry: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+})
