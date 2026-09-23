@@ -89,7 +89,7 @@ export function App() {
         <ThemeProvider>
           <FavouritesProvider>
             <SQLiteProvider
-              databaseName="courses.db"
+              databaseName="courses-2026-09.db"
               assetSource={{ assetId: require("../assets/data/courses.db") }}
               useSuspense={false}
             >

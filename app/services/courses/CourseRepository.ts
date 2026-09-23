@@ -90,6 +90,14 @@ function toFtsQuery(raw: string): string {
   return tokens.map((token) => `${token}*`).join(" AND ")
 }
 
+function likeQuery(raw: string): { sql: string; args: string[] } {
+  const value = `%${raw.trim()}%`
+  return {
+    sql: "(c.code LIKE ? OR c.title LIKE ? OR c.description LIKE ?)",
+    args: [value, value, value],
+  }
+}
+
 function graphTree(code: string, fallback: string | null | undefined): PrereqNode {
   const entry = prereqGraph[code]
   if (entry?.tree) return entry.tree as PrereqNode
@@ -154,7 +162,7 @@ export async function searchCourses(
       c.prerequisite, c.corequisite, c.exclusion, c.background, c.cilos
     FROM courses c`
 
-  if (query.length > 0) {
+  if (query.length > 0 && toFtsQuery(query)) {
     sql += ` JOIN courses_fts fts ON fts.rowid = c.rowid`
     clauses.push("fts MATCH ?")
     args.push(toFtsQuery(query))
@@ -181,7 +189,23 @@ export async function searchCourses(
   }
   sql += " ORDER BY c.prefix, c.number"
 
-  const rows = await db.getAllAsync<CourseRow>(sql, args)
+  let rows: CourseRow[]
+  try {
+    rows = await db.getAllAsync<CourseRow>(sql, args)
+  } catch (error) {
+    if (query.length === 0) throw error
+    const fallback = likeQuery(query)
+    const fallbackClauses = clauses.filter((clause) => clause !== "fts MATCH ?")
+    const fallbackArgs = args.filter((_value, index) => index !== 0)
+    const where = [...fallbackClauses, fallback.sql]
+    const fallbackSql = `SELECT DISTINCT c.code, c.prefix, c.number, c.title, c.description,
+      c.min_credits, c.max_credits, c.vector_display, c.department_code,
+      c.department_nickname, c.canonical_term_code, c.canonical_id,
+      c.prerequisite, c.corequisite, c.exclusion, c.background, c.cilos
+      FROM courses c${params.termCode ? " JOIN course_terms t ON t.code = c.code" : ""}
+      WHERE ${where.join(" AND ")} ORDER BY c.prefix, c.number`
+    rows = await db.getAllAsync<CourseRow>(fallbackSql, [...fallbackArgs, ...fallback.args])
+  }
   const seats = await seatsByCourse(
     db,
     params.termCode,
@@ -319,4 +343,3 @@ export async function getTerms(db: SQLiteDatabase): Promise<TermInfo[]> {
 export function getDatasetMeta(): DatasetMeta {
   return datasetMeta
 }
-

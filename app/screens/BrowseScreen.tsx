@@ -23,22 +23,35 @@ export function BrowseScreen() {
   const [departments, setDepartments] = useState<DepartmentInfo[]>([])
   const [terms, setTerms] = useState<TermInfo[]>([])
   const [courses, setCourses] = useState<CourseSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [sheetVisible, setSheetVisible] = useState(false)
 
   useEffect(() => {
-    Promise.all([getDepartments(db), getTerms(db)]).then(([nextDepartments, nextTerms]) => {
-      setDepartments(nextDepartments)
-      setTerms(nextTerms)
-      setTerm(nextTerms[0]?.termCode ?? null)
-    })
+    Promise.all([getDepartments(db), getTerms(db)])
+      .then(([nextDepartments, nextTerms]) => {
+        setDepartments(nextDepartments)
+        setTerms(nextTerms)
+        setTerm(nextTerms[0]?.termCode ?? null)
+      })
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to load course data"))
   }, [db])
 
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      searchCourses(db, { query, departmentCode: department, termCode: term }).then((result) => {
-        if (!cancelled) setCourses(result)
-      })
+      setLoading(true)
+      setError(null)
+      searchCourses(db, { query, departmentCode: department, termCode: term })
+        .then((result) => {
+          if (!cancelled) setCourses(result)
+        })
+        .catch((reason: unknown) => {
+          if (!cancelled) setError(reason instanceof Error ? reason.message : "Search failed")
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
     }, 120)
     return () => {
       cancelled = true
@@ -75,6 +88,7 @@ export function BrowseScreen() {
           ))}
         </View>
       </View>
+      {error ? <Text text={`Course data error: ${error}`} style={themed($error)} /> : null}
       <FlashList
         testID="course-list"
         data={courses}
@@ -85,7 +99,12 @@ export function BrowseScreen() {
             onPress={(code) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined })}
           />
         )}
-        ListEmptyComponent={<Text text="No courses match these filters." style={themed($empty)} />}
+        ListEmptyComponent={
+          <Text
+            text={loading ? "Loading courses…" : "No courses match these filters."}
+            style={themed($empty)}
+          />
+        }
       />
       <DepartmentSheet
         visible={sheetVisible}
@@ -133,4 +152,9 @@ const $selected = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({ ba
 const $empty = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   color: colors.textDim,
   padding: spacing.lg,
+})
+const $error = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
+  color: colors.error,
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.sm,
 })
