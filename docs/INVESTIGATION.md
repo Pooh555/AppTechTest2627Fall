@@ -159,6 +159,34 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** rename the action to “Apply”, expose `accessibilityLabel="Apply advanced search filters"`, and use `testID="filter-apply-button"` while retaining the existing apply-through-state and close behavior.
 - **Evidence:** the component test presses the labelled Apply button and verifies `onClose`; the Maestro flow uses the new selector.
 
+## I-23 — Runtime error and async lifecycle audit
+
+- **Reproduction:** static search identified nested promise chains in `FavouritesScreen`, metadata loading in `BrowseScreen`, and search requests that could complete after their effect cleanup. The baseline test suite did not expose these navigation-race paths.
+- **Root cause (confirmed):** `FavouritesScreen` had no cancellation or rejection boundary around its two-step database load; Browse metadata could set state after unmount; `useCourseSearch` cancelled its timer but did not invalidate an already-running request. MMKV favourite toggles also derived writes from the render snapshot rather than the latest synchronous storage value.
+- **Decision:** add explicit async `try/catch/finally` boundaries and cancellation guards, invalidate stale search request IDs during cleanup, and read the latest MMKV value before each toggle. Preserve typed repository results and existing UI fallbacks.
+- **Evidence:** TypeScript, ESLint, Jest, and dependency-cruiser pass after the changes; the audit found no repository imports of React/UI modules.
+
+## I-24 — Layer and dependency audit
+
+- **Reproduction:** `npm run depcruise` was run against the complete `app` tree, and imports from `app/services` and `app/lib` were searched for React/UI dependencies.
+- **Root cause (confirmed):** no active circular dependency or service-to-UI violation was found. The architecture already follows screen → hook → service/lib boundaries.
+- **Decision:** avoid a speculative rewrite. Document the enforced boundaries and make only lifecycle/type fixes that preserve the current ownership model.
+- **Evidence:** dependency-cruiser reports zero violations across 134 modules and 365 dependencies; no screen-to-screen imports or service imports of React/components were found.
+
+## I-25 — TypeScript and style quality audit
+
+- **Reproduction:** baseline `tsc`, ESLint, and targeted searches for `any`, `as unknown`, inline styles, and eslint disables.
+- **Root cause (confirmed):** the Button accessory contract used `StyleProp<any>`, and the safe-area utility used an unnecessary unknown-based default cast. Remaining matches are prose, test setup compatibility shims, or intentional debugging/navigation code.
+- **Decision:** type Button accessories as `StyleProp<ViewStyle>`, invoke themed accessory factories correctly, and use optional generic parameters in the safe-area utility. Do not rewrite compatibility/test scaffolding without a failing defect.
+- **Evidence:** strict compile and lint pass after the changes; no application inline `style={{...}}` patterns were found.
+
+## I-26 — Documentation and onboarding audit
+
+- **Reproduction:** README instructions and architecture claims were compared with package scripts, current directories, database scripts, generated assets, and validation commands.
+- **Root cause (confirmed):** the README covered the primary workflow but did not explicitly state all layer contracts, directory responsibilities, native/web setup differences, or the full quality command sequence.
+- **Decision:** expand the README with a Mermaid/text architecture diagram, setup matrix, module responsibility table, feature contracts, generated-data workflow, and validation guidance without introducing stale commands.
+- **Evidence:** all documented commands map to scripts in `package.json`; Maestro is explicitly documented as requiring an external CLI and native development build.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.

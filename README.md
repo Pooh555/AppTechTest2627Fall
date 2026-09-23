@@ -17,6 +17,18 @@ as `courses-2026-09-v2.db` with asset overwrite enabled, preventing stale local
 copies after a dataset rebuild. MMKV favourites require an Expo development
 build; Expo Go cannot load the native MMKV module.
 
+### Contributor setup
+
+1. Install Node 20+ and npm, then run `npm install`.
+2. For a fresh dataset rebuild, install `huggingface_hub` and `pyarrow`, run
+   `python scripts/fetch-schedule.py`, then run `npm run build:data`.
+3. Start the web target with `npm run web`, or create a native development
+   client with `npm run android` / `npm run ios`.
+4. Run `npm run compile`, `npm run lint:check`, `npm test -- --runInBand`, and
+   `npm run depcruise` before submitting changes.
+5. Run `npm run test:maestro` on a machine with the Maestro CLI and a connected
+   native development build.
+
 ## Platforms tested
 
 The app is structured for Expo SDK 55 and was tested with the Expo web target and
@@ -31,6 +43,52 @@ screens -> hooks -> services/courses -> expo-sqlite
     \-> components/prereq -> lib/search | lib/prereq | theme registry
 build scripts -> generated SQLite + graph assets
 ```
+
+```mermaid
+flowchart TD
+  UI[ Screens and Components ] --> Hooks[ Hooks and State ]
+  Hooks --> Services[ Course Repositories and Services ]
+  Services --> SQLite[(SQLite)]
+  Services --> Assets[(Generated graph/assets)]
+  Hooks --> MMKV[(MMKV favourites/theme)]
+  Services --> Lib[ Pure lib utilities ]
+  Build[ scripts/build-data.ts ] --> SQLite
+  Build --> Assets
+```
+
+Layer contracts are strict: screens compose hooks and present state; hooks own
+request lifecycles and view state; repositories/services own SQLite and asset
+access; `app/lib` contains pure parsing, search, graph, and formatting logic.
+Repositories and `app/lib` do not import React or UI components, and screens do
+not execute raw SQL.
+
+### Directory and module responsibilities
+
+| Path                   | Responsibility                                                       |
+| ---------------------- | -------------------------------------------------------------------- |
+| `app/screens`          | Route-level declarative views and navigation actions.                |
+| `app/components`       | Reusable themed UI primitives and feature components.                |
+| `app/hooks`            | Cancellable async orchestration and screen-facing state.             |
+| `app/context`          | Small cross-screen state providers such as favourites.               |
+| `app/services/courses` | Typed SQLite repository methods and graph asset access.              |
+| `app/lib`              | Pure parser, search planner, graph view-model, and formatting logic. |
+| `app/theme`            | Theme registry, tokens, persistence, and contrast-tested palettes.   |
+| `app/navigators`       | Stack/tab route definitions and navigation types.                    |
+| `scripts`              | Reproducible schedule trimming and database/graph generation.        |
+| `assets/data`          | Generated SQLite, prerequisite graph, and dataset metadata.          |
+| `.maestro`             | Device-level smoke flows for core search and explorer paths.         |
+| `test`                 | Jest setup and native module test shims.                             |
+
+### Core feature contracts
+
+- **Search:** `searchIntent.ts` classifies code prefixes and prose; the
+  repository turns the result into parameterized, paginated SQLite/FTS plans.
+- **Prerequisites:** `parsePrereq.ts` produces an AST; `prereqGraph.ts` loads
+  generated graph data lazily; tree components handle cycles and depth limits.
+- **Themes:** `registry.ts` is the source of palette identifiers and semantic
+  colors; persisted legacy identifiers are migrated by the theme provider.
+- **Advanced filters:** terms, departments, and open-seat criteria remain
+  typed filter state and become parameterized `EXISTS`/`IN` SQL clauses.
 
 `SQLiteProvider` owns the database handle; screens do not hold dataset state in
 React Context. Hooks own loading/error/stale-request state, services own SQL and
@@ -74,14 +132,14 @@ The script uses `pyarrow` and `huggingface_hub`; install them with
    offered term in `course_terms`.
 2. Joins schedule rows by the stable catalog `id` (`schedule.course_id`) and
    `term_code`, not by row position or title.
-3. Builds `assets/data/courses.db` (currently about 51 MB) with indexed
+3. Builds `assets/data/courses.db` (currently about 14 MB) with indexed
    `courses`, `course_terms`, and `sections` tables plus the `courses_fts` FTS5
    table over code, title, and description. FTS rows use the matching
    `courses.rowid`.
 4. Parses prerequisite, corequisite, and exclusion fields and writes
    `assets/data/prereq-graph.json`, including reverse `unlockedBy` edges.
 5. Writes `assets/data/dataset-meta.json` for the Settings screen. The generated
-   database is about 51 MB after external-content FTS and VACUUM; the build
+   database is about 14 MB after external-content FTS and VACUUM; the build
    prints final artifact sizes so rebuilds can detect accidental growth.
 
 All parsing and SQLite construction happen in the Node build script. No catalog
