@@ -6,6 +6,7 @@ import { FlashList } from "@shopify/flash-list"
 
 import { CourseRow } from "@/components/CourseRow"
 import { Screen } from "@/components/Screen"
+import { EmptyState } from "@/components/StateViews"
 import { Text } from "@/components/Text"
 import { useFavourites } from "@/context/FavouritesContext"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -34,7 +35,9 @@ export function FavouritesScreen() {
             onPress={(code) => navigation.navigate("CourseDetail", { code })}
           />
         )}
-        ListEmptyComponent={<Text text="No favourites yet." style={{ padding: 16 }} />}
+        ListEmptyComponent={
+          <EmptyState title="No favourites yet" message="Save courses to find them here." />
+        }
       />
     </Screen>
   )

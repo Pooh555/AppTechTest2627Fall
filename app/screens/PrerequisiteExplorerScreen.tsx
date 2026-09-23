@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 
 import { Screen } from "@/components/Screen"
+import { EmptyState } from "@/components/StateViews"
 import { Text } from "@/components/Text"
 import { collectCourseCodes, type PrereqNode } from "@/lib/parsePrereq"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -40,9 +41,8 @@ export function PrerequisiteExplorerScreen() {
         ))}
       </View>
       {empty ? (
-        <Text
-          text={direction === "prereq" ? "No prerequisites" : "Not a prerequisite for any course"}
-          style={themed($muted)}
+        <EmptyState
+          title={direction === "prereq" ? "No prerequisites" : "Not a prerequisite for any course"}
         />
       ) : (
         <LazyNode

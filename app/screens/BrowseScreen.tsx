@@ -8,6 +8,7 @@ import { FlashList } from "@shopify/flash-list"
 import { CourseRow } from "@/components/CourseRow"
 import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
+import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { Text } from "@/components/Text"
 import { useCourseSearch } from "@/hooks/useCourseSearch"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -90,7 +91,10 @@ export function BrowseScreen() {
         </View>
       </View>
       {metadataError || error ? (
-        <Text text={`Course data error: ${metadataError ?? error}`} style={themed($error)} />
+        <ErrorState
+          title={metadataError ? "Unable to load course data" : "Search failed"}
+          message={metadataError ?? error ?? undefined}
+        />
       ) : null}
       <FlashList
         testID="course-list"
@@ -102,10 +106,14 @@ export function BrowseScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         ListEmptyComponent={
-          <Text
-            text={loading ? "Loading courses…" : "No courses match these filters."}
-            style={themed($empty)}
-          />
+          loading ? (
+            <LoadingState title="Loading courses…" />
+          ) : (
+            <EmptyState
+              title="No courses match these filters"
+              message="Try a different search or filter."
+            />
+          )
         }
       />
       <DepartmentSheet
@@ -154,13 +162,4 @@ const $chip = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => 
 })
 const $selected = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
   backgroundColor: colors.tint,
-})
-const $empty = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  color: colors.textDim,
-  padding: spacing.lg,
-})
-const $error = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  color: colors.error,
-  paddingHorizontal: spacing.md,
-  paddingBottom: spacing.sm,
 })

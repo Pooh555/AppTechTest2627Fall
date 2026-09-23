@@ -6,6 +6,7 @@ import { FlashList } from "@shopify/flash-list"
 
 import { PrereqPreview } from "@/components/PrereqPreview"
 import { Screen } from "@/components/Screen"
+import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { Text } from "@/components/Text"
 import { useFavourites } from "@/context/FavouritesContext"
 import { useCourseDetail } from "@/hooks/useCourseDetail"
@@ -27,16 +28,16 @@ export function CourseDetailScreen() {
   if (loading)
     return (
       <Screen preset="fixed">
-        <Text text="Loading course…" />
+        <LoadingState title="Loading course…" />
       </Screen>
     )
   if (error || !course)
     return (
       <Screen preset="fixed">
-        <Text text={error ?? "Course not found"} />
-        <Pressable onPress={() => navigation.goBack()} style={themed($button)}>
-          <Text text="Go back" />
-        </Pressable>
+        <ErrorState
+          title={error ?? "Course not found"}
+          action={{ label: "Go back", onPress: navigation.goBack }}
+        />
       </Screen>
     )
   return (
@@ -107,7 +108,7 @@ export function CourseDetailScreen() {
             ))}
           </View>
         )}
-        ListEmptyComponent={<Text text="No sections for this term." style={themed($muted)} />}
+        ListEmptyComponent={<EmptyState title="No sections for this term" />}
       />
     </Screen>
   )
