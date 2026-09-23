@@ -86,6 +86,7 @@ web-build/
 !env.js
 
 /coverage
+.venv/
 
 # Dependency Graph Visualizations
 app-dependency-graph.svg

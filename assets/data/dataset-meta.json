@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-09-23T12:39:55.965Z",
+  "catalogPath": "courses.json",
+  "schedulePath": "assets/data/schedule.json",
+  "scheduleSource": "ust-archive/schedule",
+  "scheduleConfig": "classes",
+  "scheduleFetchCommand": "python -c \"from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='ust-archive/schedule', repo_type='dataset', revision='refs/convert/parquet', filename='classes/train/0000.parquet'))\"",
+  "terms": [
+    {
+      "term_code": "2610",
+      "term_name": "2026-27 Fall",
+      "term_num": 104
+    },
+    {
+      "term_code": "2540",
+      "term_name": "2025-26 Summer",
+      "term_num": 103
+    },
+    {
+      "term_code": "2530",
+      "term_name": "2025-26 Spring",
+      "term_num": 102
+    },
+    {
+      "term_code": "2520",
+      "term_name": "2025-26 Winter",
+      "term_num": 101
+    }
+  ],
+  "courseCount": 4030,
+  "sectionCount": 79946,
+  "catalogRowCount": 15178
+}
