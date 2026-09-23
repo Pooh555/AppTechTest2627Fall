@@ -25,6 +25,8 @@ jest.doMock("react-native", () => {
   )
 })
 
+jest.doMock("@expo/vector-icons", () => ({ Ionicons: () => null }))
+
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
 
 declare global {

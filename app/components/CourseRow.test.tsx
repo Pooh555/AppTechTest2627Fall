@@ -28,7 +28,7 @@ describe("CourseRow", () => {
           course={course}
           onPress={jest.fn()}
           action={{
-            icon: "♥",
+            icon: "heart",
             label: "Remove COMP 4211 from favorites",
             onPress: onRemove,
           }}

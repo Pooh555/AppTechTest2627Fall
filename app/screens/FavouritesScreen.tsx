@@ -37,7 +37,7 @@ export function FavouritesScreen() {
             course={item}
             onPress={(code) => navigation.navigate("CourseDetail", { code })}
             action={{
-              icon: "♥",
+              icon: "heart",
               label: `Remove ${item.code} from favorites`,
               onPress: (code) => {
                 setCourses((current) => current.filter((course) => course.code !== code))

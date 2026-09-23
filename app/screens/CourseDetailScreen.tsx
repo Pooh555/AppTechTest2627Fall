@@ -1,5 +1,6 @@
 import { Pressable, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
+import { Ionicons } from "@expo/vector-icons"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
 
@@ -54,8 +55,21 @@ export function CourseDetailScreen() {
                 <Text text={course.code} preset="heading" />
                 <Text text={course.title} />
               </View>
-              <Pressable onPress={() => toggleFavourite(course.code)} style={themed($favourite)}>
-                <Text text={hasFavourite(course.code) ? "★" : "☆"} size="xl" />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hasFavourite(course.code)
+                    ? `Remove ${course.code} from favorites`
+                    : `Add ${course.code} to favorites`
+                }
+                onPress={() => toggleFavourite(course.code)}
+                style={themed($favourite)}
+              >
+                <Ionicons
+                  name={hasFavourite(course.code) ? "heart" : "heart-outline"}
+                  size={28}
+                  color={themed($favourite).color}
+                />
               </Pressable>
             </View>
             <Text

@@ -1,5 +1,6 @@
 import { memo } from "react"
 import { Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 
 import { formatCredits } from "@/lib/formatCredits"
 import type { CourseSummary } from "@/services/courses/types"
@@ -15,7 +16,7 @@ export type CourseRowProps = {
   action?: {
     label: string
     onPress: (code: string) => void
-    icon: string
+    icon: "heart" | "heart-outline"
   }
 }
 
@@ -40,7 +41,7 @@ export const CourseRow = memo(function CourseRow({ course, onPress, action }: Co
               onPress={() => action.onPress(course.code)}
               style={themed($action)}
             >
-              <Text text={action.icon} size="lg" style={themed($actionText)} />
+              <Ionicons name={action.icon} size={22} color={themed($actionText).color} />
             </Pressable>
           ) : null}
         </View>
