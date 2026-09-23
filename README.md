@@ -124,6 +124,15 @@ The persisted theme mapping is `youtube` (legacy storage value) -> `crimson`;
 the legacy value is accepted only during migration and is never presented as a
 current theme name.
 
+| Current theme | Former identifier | Minimum tested contrast |
+| ------------- | ----------------- | ----------------------: |
+| Light         | light             |                  6.58:1 |
+| Dark          | dark              |                  7.66:1 |
+| Crimson       | youtube           |                  6.47:1 |
+| Pastel        | pastel            |                  6.49:1 |
+| Sepia         | sepia             |                  6.49:1 |
+| Midnight      | midnight          |                  6.48:1 |
+
 ## Assumptions and limitations
 
 - `id` is treated as the stable cross-term join key, even though it is reused
