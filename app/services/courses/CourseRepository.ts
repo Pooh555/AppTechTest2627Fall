@@ -139,8 +139,11 @@ export async function searchCourses(
   )
   const plan = buildSearchPlan(intent, {
     termCode: params.termCode,
+    terms: params.filters?.terms,
     departmentCode: params.departmentCode,
     codes: params.codes,
+    openSeatsOnly: params.filters?.openSeatsOnly,
+    attributes: params.filters?.attributes,
     limit,
     offset,
   })
@@ -310,6 +313,13 @@ export async function getDepartments(db: SQLiteDatabase): Promise<DepartmentInfo
      FROM courses
      ORDER BY department_code`,
   )
+}
+
+export async function getCourseAttributes(db: SQLiteDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ attribute: string }>(
+    "SELECT DISTINCT attribute FROM course_attributes ORDER BY attribute",
+  )
+  return rows.map((row) => row.attribute)
 }
 
 export async function getTerms(db: SQLiteDatabase): Promise<TermInfo[]> {

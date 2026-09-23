@@ -106,6 +106,11 @@ export type SearchCoursesParams = {
   query?: string
   departmentCode?: string | null
   termCode?: string | null
+  filters?: {
+    terms?: string[]
+    openSeatsOnly?: boolean
+    attributes?: string[]
+  }
   codes?: string[]
   limit?: number
   offset?: number

@@ -76,6 +76,14 @@ function createSchema(db: Database.Database) {
     CREATE INDEX idx_courses_department ON courses(department_code);
     CREATE INDEX idx_courses_term ON courses(canonical_term_code);
 
+    CREATE TABLE course_attributes (
+      code TEXT NOT NULL,
+      attribute TEXT NOT NULL,
+      PRIMARY KEY (code, attribute)
+    );
+    CREATE INDEX idx_course_attributes_attribute_code
+      ON course_attributes(attribute, code);
+
     CREATE TABLE course_terms (
       code TEXT NOT NULL,
       term_code TEXT NOT NULL,
@@ -159,6 +167,10 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
     INSERT INTO course_terms (code, term_code, term_name, term_num, course_id)
     VALUES (@code, @term_code, @term_name, @term_num, @course_id)
   `)
+  const insertAttribute = db.prepare(`
+    INSERT OR IGNORE INTO course_attributes (code, attribute)
+    VALUES (@code, @attribute)
+  `)
   const tx = db.transaction(() => {
     for (const course of courses) {
       insertCourse.run({
@@ -193,6 +205,16 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
           term_num: term.term_num,
           course_id: term.course_id,
         })
+      }
+      const attributes = Array.isArray(course.attributes) ? course.attributes : []
+      for (const attribute of attributes) {
+        if (!attribute || typeof attribute !== "object") continue
+        const value =
+          "value" in attribute && typeof attribute.value === "string" ? attribute.value : null
+        const label =
+          "label" in attribute && typeof attribute.label === "string" ? attribute.label : null
+        if (value) insertAttribute.run({ code: course.code, attribute: value })
+        if (label) insertAttribute.run({ code: course.code, attribute: label })
       }
     }
   })

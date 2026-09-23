@@ -43,4 +43,22 @@ describe("real course search plans", () => {
     const codes = codesFor("data")
     expect(codes[0]).toBe("DSAA 5002")
   })
+
+  it("adds parameterized term, seat, and attribute filters", () => {
+    const plan = buildSearchPlan(
+      { kind: "TEXT", value: "" },
+      {
+        terms: ["2610", "2620"],
+        openSeatsOnly: true,
+        attributes: ["CC26"],
+        limit: 60,
+        offset: 0,
+      },
+    )
+
+    expect(plan.sql).toContain("course_terms")
+    expect(plan.sql).toContain("course_seat_status")
+    expect(plan.sql).toContain("course_attributes")
+    expect(plan.args).toEqual(["2610", "2620", "2610", "2620", "CC26", 61, 0])
+  })
 })

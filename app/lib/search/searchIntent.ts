@@ -30,10 +30,19 @@ export function normalizeQuery(raw: string): string {
 
 export type SearchFilters = {
   termCode?: string | null
+  terms?: string[]
   departmentCode?: string | null
   codes?: string[]
+  openSeatsOnly?: boolean
+  attributes?: string[]
   limit: number
   offset: number
+}
+
+export type CourseFilters = {
+  terms?: string[]
+  openSeatsOnly?: boolean
+  attributes?: string[]
 }
 
 export type SearchPlan = {
@@ -71,9 +80,12 @@ export function buildSearchPlan(intent: SearchIntent, filters: SearchFilters): S
     }
   }
 
-  if (filters.termCode) {
-    clauses.push("EXISTS (SELECT 1 FROM course_terms t WHERE t.code = c.code AND t.term_code = ?)")
-    args.push(filters.termCode)
+  const terms = filters.terms?.length ? filters.terms : filters.termCode ? [filters.termCode] : []
+  if (terms.length > 0) {
+    clauses.push(
+      `EXISTS (SELECT 1 FROM course_terms t WHERE t.code = c.code AND t.term_code IN (${terms.map(() => "?").join(",")}))`,
+    )
+    args.push(...terms)
   }
   if (filters.departmentCode) {
     clauses.push("c.department_code = ?")
@@ -82,6 +94,23 @@ export function buildSearchPlan(intent: SearchIntent, filters: SearchFilters): S
   if (filters.codes && filters.codes.length > 0) {
     clauses.push(`c.code IN (${filters.codes.map(() => "?").join(",")})`)
     args.push(...filters.codes)
+  }
+  if (filters.openSeatsOnly) {
+    clauses.push(
+      `EXISTS (
+        SELECT 1 FROM course_seat_status ss
+        WHERE ss.course_code = c.code
+          AND ss.open_seats > 0
+          ${terms.length > 0 ? `AND ss.term_code IN (${terms.map(() => "?").join(",")})` : ""}
+      )`,
+    )
+    if (terms.length > 0) args.push(...terms)
+  }
+  for (const attribute of filters.attributes ?? []) {
+    clauses.push(
+      "EXISTS (SELECT 1 FROM course_attributes ca WHERE ca.code = c.code AND ca.attribute = ?)",
+    )
+    args.push(attribute)
   }
 
   const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : ""

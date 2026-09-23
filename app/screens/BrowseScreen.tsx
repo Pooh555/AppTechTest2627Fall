@@ -7,12 +7,16 @@ import { FlashList } from "@shopify/flash-list"
 import { CourseRow } from "@/components/CourseRow"
 import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
+import {
+  AdvancedFilterSheet,
+  type AdvancedFilterState,
+} from "@/components/search/AdvancedFilterSheet"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { TermSelector } from "@/components/TermSelector"
 import { Text } from "@/components/Text"
 import { useCourseSearch } from "@/hooks/useCourseSearch"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { getDepartments, getTerms } from "@/services/courses/CourseRepository"
+import { getCourseAttributes, getDepartments, getTerms } from "@/services/courses/CourseRepository"
 import type { DepartmentInfo, TermInfo } from "@/services/courses/types"
 import { useAppTheme } from "@/theme/context"
 
@@ -25,7 +29,14 @@ export function BrowseScreen() {
   const [term, setTerm] = useState<string | null>(null)
   const [departments, setDepartments] = useState<DepartmentInfo[]>([])
   const [terms, setTerms] = useState<TermInfo[]>([])
+  const [attributes, setAttributes] = useState<string[]>([])
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilterState>({
+    terms: [],
+    openSeatsOnly: false,
+    attributes: [],
+  })
   const [sheetVisible, setSheetVisible] = useState(false)
+  const [advancedSheetVisible, setAdvancedSheetVisible] = useState(false)
   const [metadataError, setMetadataError] = useState<string | null>(null)
   const {
     rows: courses,
@@ -37,14 +48,16 @@ export function BrowseScreen() {
     query,
     departmentCode: department,
     termCode: term,
+    filters: advancedFilters,
     limit: 60,
   })
 
   useEffect(() => {
-    Promise.all([getDepartments(db), getTerms(db)])
-      .then(([nextDepartments, nextTerms]) => {
+    Promise.all([getDepartments(db), getTerms(db), getCourseAttributes(db)])
+      .then(([nextDepartments, nextTerms, nextAttributes]) => {
         setDepartments(nextDepartments)
         setTerms(nextTerms)
+        setAttributes(nextAttributes)
         setTerm(nextTerms[0]?.termCode ?? null)
       })
       .catch((reason: unknown) =>
@@ -70,6 +83,14 @@ export function BrowseScreen() {
           style={themed($search)}
           autoCorrect={false}
         />
+        <AdvancedFilterSheet
+          visible={advancedSheetVisible}
+          terms={terms}
+          attributes={attributes}
+          value={advancedFilters}
+          onApply={setAdvancedFilters}
+          onClose={() => setAdvancedSheetVisible(false)}
+        />
         <View style={themed($filters)}>
           <Pressable
             testID="department-filter"
@@ -77,6 +98,22 @@ export function BrowseScreen() {
             style={themed($filter)}
           >
             <Text text={department ?? "All departments"} size="xs" />
+          </Pressable>
+          <Pressable
+            testID="advanced-filter"
+            onPress={() => setAdvancedSheetVisible(true)}
+            style={themed($filter)}
+          >
+            <Text
+              text={
+                advancedFilters.openSeatsOnly ||
+                advancedFilters.terms.length > 0 ||
+                advancedFilters.attributes.length > 0
+                  ? "Filters applied"
+                  : "Filters"
+              }
+              size="xs"
+            />
           </Pressable>
           <TermSelector terms={terms} selectedTerm={term} onSelect={setTerm} />
         </View>
@@ -118,7 +155,11 @@ export function BrowseScreen() {
   )
 }
 
-const $header: ViewStyle = { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }
+const $header = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]): ViewStyle => ({
+  paddingHorizontal: spacing.md,
+  paddingTop: spacing.sm,
+  paddingBottom: spacing.sm,
+})
 const $search = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   backgroundColor: colors.palette.neutral100,
   borderColor: colors.separator,

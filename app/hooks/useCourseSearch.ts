@@ -50,15 +50,24 @@ function reducer(state: State, action: Action): State {
 export function useCourseSearch(db: SQLiteDatabase, params: SearchCoursesParams) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const requestId = useRef(0)
-  const { departmentCode, query, termCode, limit, codes } = params
+  const { departmentCode, query, termCode, limit, codes, filters } = params
   const codesKey = codes?.join("\0")
+  const filtersKey = JSON.stringify(filters ?? {})
 
   useEffect(() => {
     if (!termCode) return
     const id = ++requestId.current
     const timer = setTimeout(() => {
       dispatch({ type: "start" })
-      searchCourses(db, { query, departmentCode, termCode, codes, offset: 0, limit: limit ?? 60 })
+      searchCourses(db, {
+        query,
+        departmentCode,
+        termCode,
+        filters,
+        codes,
+        offset: 0,
+        limit: limit ?? 60,
+      })
         .then((result) => {
           if (id === requestId.current) {
             dispatch({ type: "success", rows: result.rows, hasMore: result.hasMore })
@@ -74,7 +83,7 @@ export function useCourseSearch(db: SQLiteDatabase, params: SearchCoursesParams)
         })
     }, 120)
     return () => clearTimeout(timer)
-  }, [codes, codesKey, db, departmentCode, limit, query, termCode])
+  }, [codes, codesKey, db, departmentCode, filters, filtersKey, limit, query, termCode])
 
   const loadMore = useCallback(() => {
     if (!state.hasMore || state.loading || state.loadingMore) return
@@ -84,6 +93,7 @@ export function useCourseSearch(db: SQLiteDatabase, params: SearchCoursesParams)
       query,
       departmentCode,
       termCode,
+      filters,
       codes,
       offset: state.rows.length,
       limit: limit ?? 60,
@@ -108,6 +118,7 @@ export function useCourseSearch(db: SQLiteDatabase, params: SearchCoursesParams)
     limit,
     query,
     termCode,
+    filters,
     state.hasMore,
     state.loading,
     state.loadingMore,
