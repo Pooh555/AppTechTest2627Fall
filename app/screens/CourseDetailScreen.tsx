@@ -23,8 +23,19 @@ export function CourseDetailScreen() {
   const [sections, setSections] = useState<CourseSection[]>([])
 
   useEffect(() => {
-    getCourseDetail(db, route.params.code, route.params.termCode).then(setCourse)
-    if (route.params.termCode) getSections(db, route.params.code, route.params.termCode).then(setSections)
+    let cancelled = false
+    getCourseDetail(db, route.params.code, route.params.termCode).then((detail) => {
+      if (!detail || cancelled) return
+      setCourse(detail)
+      getSections(db, route.params.code, route.params.termCode ?? detail.canonicalTermCode).then(
+        (nextSections) => {
+          if (!cancelled) setSections(nextSections)
+        },
+      )
+    })
+    return () => {
+      cancelled = true
+    }
   }, [db, route.params.code, route.params.termCode])
 
   if (!course) return <Screen preset="fixed"><Text text="Loading course…" /></Screen>
