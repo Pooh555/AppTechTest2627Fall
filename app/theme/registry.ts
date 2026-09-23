@@ -25,6 +25,10 @@ export type ColorTokens = {
   onSeatNearFull: string
   seatFull: string
   onSeatFull: string
+  seatUnavailable: string
+  onSeatUnavailable: string
+  seatUnknown: string
+  onSeatUnknown: string
   transparent: string
   palette: {
     neutral100: string
@@ -110,6 +114,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#7A4A00",
       seatFull: "#FCE0E0",
       onSeatFull: "#8F1D1D",
+      seatUnavailable: "#EEF1F6",
+      onSeatUnavailable: "#0F172A",
+      seatUnknown: "#D9DFEA",
+      onSeatUnknown: "#0F172A",
     }),
   },
   {
@@ -141,6 +149,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#FFD166",
       seatFull: "#421515",
       onSeatFull: "#FF9A9A",
+      seatUnavailable: "#1E2838",
+      onSeatUnavailable: "#E8EEF9",
+      seatUnknown: "#2A3548",
+      onSeatUnknown: "#E8EEF9",
     }),
   },
   {
@@ -172,6 +184,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#78350F",
       seatFull: "#FEE2E2",
       onSeatFull: "#991B1B",
+      seatUnavailable: "#F4E8E6",
+      onSeatUnavailable: "#2B1111",
+      seatUnknown: "#E8D8D5",
+      onSeatUnknown: "#2B1111",
     }),
   },
   {
@@ -203,6 +219,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#78350F",
       seatFull: "#FCE7F3",
       onSeatFull: "#86198F",
+      seatUnavailable: "#F1E8FA",
+      onSeatUnavailable: "#24133D",
+      seatUnknown: "#E5D8F0",
+      onSeatUnknown: "#24133D",
     }),
   },
   {
@@ -234,6 +254,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#78350F",
       seatFull: "#FEE2E2",
       onSeatFull: "#991B1B",
+      seatUnavailable: "#EFE6D8",
+      onSeatUnavailable: "#2D2014",
+      seatUnknown: "#E2D4C1",
+      onSeatUnknown: "#2D2014",
     }),
   },
   {
@@ -265,6 +289,10 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
       onSeatNearFull: "#FDE68A",
       seatFull: "#4C1D2A",
       onSeatFull: "#FDA4AF",
+      seatUnavailable: "#1B293A",
+      onSeatUnavailable: "#E6F4FF",
+      seatUnknown: "#263A4D",
+      onSeatUnknown: "#E6F4FF",
     }),
   },
 ]

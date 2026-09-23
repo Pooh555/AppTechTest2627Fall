@@ -39,7 +39,9 @@ const $label =
           ? colors.onSeatNearFull
           : status === "full"
             ? colors.onSeatFull
-            : colors.text,
+            : status === "n/a"
+              ? colors.onSeatUnavailable
+              : colors.onSeatUnknown,
     fontWeight: "600",
   })
 
@@ -47,6 +49,6 @@ const $tone: Record<SeatStatus, ThemedStyle<ViewStyle>> = {
   "open": ({ colors }) => ({ backgroundColor: colors.seatOpen }),
   "near-full": ({ colors }) => ({ backgroundColor: colors.seatNearFull }),
   "full": ({ colors }) => ({ backgroundColor: colors.seatFull }),
-  "n/a": ({ colors }) => ({ backgroundColor: colors.surfaceMuted }),
-  "unknown": ({ colors }) => ({ backgroundColor: colors.palette.neutral500 }),
+  "n/a": ({ colors }) => ({ backgroundColor: colors.seatUnavailable }),
+  "unknown": ({ colors }) => ({ backgroundColor: colors.seatUnknown }),
 }

@@ -75,6 +75,13 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Evidence:** registry-level WCAG tests already calculate all required contrast pairs; the new test will assert every renamed theme and migration mapping.
 - **Implemented evidence:** the public registry now contains `System | Light | Dark | Pastel | Sepia | Midnight | Crimson`; only the migration function recognizes the legacy persisted string and rewrites it to `crimson`.
 
+## I-10 — Seat-status label contrast
+
+- **Symptom:** `No seats data` and `N/A` can render as black text on a theme-specific muted pill, especially in Crimson and Sepia.
+- **Root cause (confirmed):** `SeatStatusPill` had semantic foreground tokens only for `open`, `near-full`, and `full`; both neutral states fell through to `colors.text` while their backgrounds were `surfaceMuted` or `palette.neutral500`.
+- **Decision:** add explicit `seatUnavailable/onSeatUnavailable` and `seatUnknown/onSeatUnknown` tokens to every palette. The pill now selects a foreground token for all five `SeatStatus` values, with no implicit React Native text color. Also correct shared button pressed/reversed styles to use tested semantic pairs rather than palette aliases with insufficient contrast.
+- **Evidence:** the registry contrast suite now verifies both neutral status pairs, common neutral surfaces, and primary button foreground/background pairs for every concrete theme in addition to the existing semantic status pairs.
+
 ## I-9 — Duplicated course sections
 
 - **Symptom:** Course detail displays the same `LEC L1` repeatedly with changing enrollment and wait-list values.
