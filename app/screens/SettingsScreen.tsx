@@ -32,12 +32,19 @@ export function SettingsScreen() {
           />
         ))}
       </View>
-      <Text
-        text={`Bundled terms: ${meta.terms.map((term) => term.term_name).join(", ")}`}
-        style={themed($dataset)}
-      />
-      <Text text={`Generated: ${meta.generatedAt}`} size="xs" />
-      <Text text={`${meta.courseCount} courses · ${meta.sectionCount} sections`} size="xs" />
+      <View style={themed($datasetBlock)}>
+        <Text
+          text={`Bundled terms: ${meta.terms.map((term) => term.term_name).join(", ")}`}
+          size="xs"
+          style={themed($helperText)}
+        />
+        <Text text={`Generated: ${meta.generatedAt}`} size="xs" style={themed($helperText)} />
+        <Text
+          text={`${meta.courseCount} courses · ${meta.sectionCount} sections`}
+          size="xs"
+          style={themed($helperText)}
+        />
+      </View>
     </Screen>
   )
 }
@@ -117,6 +124,13 @@ const $swatch =
 const $optionText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
-const $dataset: ThemedStyle<TextStyle> = ({ spacing }) => ({
+const $datasetBlock: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  borderTopColor: colors.separator,
+  borderTopWidth: 1,
+  gap: spacing.xxs,
   marginTop: spacing.lg,
+  paddingTop: spacing.sm,
+})
+const $helperText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
 })
