@@ -5,6 +5,12 @@ appId: ${MAESTRO_APP_ID}
 - inputText: "comp4211"
 - tapOn:
     id: "department-filter"
+- swipe:
+    from:
+      id: "term-selector"
+    direction: LEFT
+    duration: 500
+- assertVisible: "Winter"
 - tapOn:
     id: "department-COMP"
 - tapOn:

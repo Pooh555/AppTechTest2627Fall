@@ -1,4 +1,4 @@
-export type ThemeId = "system" | "light" | "dark" | "youtube" | "pastel" | "sepia" | "midnight"
+export type ThemeId = "system" | "light" | "dark" | "pastel" | "sepia" | "midnight" | "crimson"
 
 export type ColorTokens = {
   background: string
@@ -144,8 +144,8 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
     }),
   },
   {
-    id: "youtube",
-    label: "YouTube",
+    id: "crimson",
+    label: "Crimson",
     isDark: false,
     colors: tokens({
       background: "#FFF8F7",
@@ -271,4 +271,20 @@ export const themeDefinitions: readonly ThemeDefinition[] = [
 
 export function createThemeDefinition(id: Exclude<ThemeId, "system">): ThemeDefinition {
   return themeDefinitions.find((theme) => theme.id === id) ?? themeDefinitions[0]
+}
+
+export function migrateThemeId(value: string | undefined): ThemeId | undefined {
+  if (value === "youtube") return "crimson"
+  if (
+    value === "system" ||
+    value === "light" ||
+    value === "dark" ||
+    value === "pastel" ||
+    value === "sepia" ||
+    value === "midnight" ||
+    value === "crimson"
+  ) {
+    return value
+  }
+  return undefined
 }

@@ -18,7 +18,7 @@ import { useMMKVString } from "react-native-mmkv"
 import { storage } from "@/utils/storage"
 
 import { setImperativeTheming } from "./context.utils"
-import type { ThemeId } from "./registry"
+import { migrateThemeId, type ThemeId } from "./registry"
 import { createTheme } from "./theme"
 import type {
   AllowedStylesT,
@@ -63,6 +63,10 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   const [themeScheme, setThemeScheme] = useMMKVString("usthing.theme", storage)
 
   useEffect(() => {
+    if (themeScheme === "youtube") {
+      setThemeScheme("crimson")
+      return
+    }
     if (themeScheme !== undefined) return
     const legacy = storage.getString("ignite.themeScheme")
     if (legacy === "light" || legacy === "dark") {
@@ -88,7 +92,7 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
    * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
    * systemColorScheme is the value from the device. If undefined, we fall back to "light"
    */
-  const themeId: ThemeId = initialContext ?? (themeScheme as ThemeId | undefined) ?? "system"
+  const themeId: ThemeId = initialContext ?? migrateThemeId(themeScheme) ?? "system"
   const themeContext: ImmutableThemeContextModeT =
     themeId === "system" ? (systemColorScheme === "dark" ? "dark" : "light") : themeId
 

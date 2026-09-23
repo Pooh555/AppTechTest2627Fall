@@ -73,3 +73,4 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Root cause (confirmed):** `ThemeId`, registry definitions, and Settings labels all derive from the literal `"youtube"`. Existing migration only handles legacy light/dark values.
 - **Decision:** rename it to `crimson`, migrate stored `youtube` values to `crimson` during provider hydration, and retain all existing palette values. Extend contrast tests and document the mapping.
 - **Evidence:** registry-level WCAG tests already calculate all required contrast pairs; the new test will assert every renamed theme and migration mapping.
+- **Implemented evidence:** the public registry now contains `System | Light | Dark | Pastel | Sepia | Midnight | Crimson`; only the migration function recognizes the legacy persisted string and rewrites it to `crimson`.

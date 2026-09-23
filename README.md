@@ -113,12 +113,16 @@ deterministic exact-code, title-prefix, title-word, description, and code
 tie-breaking tiers. All plans apply term/department filters and limit-plus-one
 pagination.
 
-The theme registry defines Light, Dark, YouTube, Pastel, Sepia, and Midnight,
+The theme registry defines Light, Dark, Crimson, Pastel, Sepia, and Midnight,
 plus System selection. Each palette shares one `ColorTokens` interface,
 including semantic seat-status foreground/background pairs. Settings exposes
 accessible radio options with live swatches; the legacy `ignite.themeScheme`
 light/dark value is migrated without data loss. Every palette is covered by a
 WCAG AA contrast test.
+
+The persisted theme mapping is `youtube` (legacy storage value) -> `crimson`;
+the legacy value is accepted only during migration and is never presented as a
+current theme name.
 
 ## Assumptions and limitations
 
