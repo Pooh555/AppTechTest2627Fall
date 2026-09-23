@@ -1,5 +1,14 @@
 import { flattenPrereq, parsePrereq } from "./parsePrereq"
 import { expandPrereq } from "./prereqWalk"
+import courses from "../../courses.json"
+import type { CatalogRow } from "../../scripts/pipeline"
+
+function assertNoPunctuationLeaves(node: ReturnType<typeof parsePrereq>) {
+  if (node.type === "text") expect(node.value).toMatch(/[\p{L}\p{N}]/u)
+  if (node.type === "and" || node.type === "or") {
+    node.children.forEach(assertNoPunctuationLeaves)
+  }
+}
 
 describe("parsePrereq", () => {
   it("parses an empty string as no prerequisite", () => {
@@ -140,6 +149,22 @@ describe("parsePrereq", () => {
       code: "MATH 1013",
       meta: { grade: "C-" },
     })
+  })
+
+  it("parses every bundled prerequisite, corequisite, and exclusion safely", () => {
+    let resolved = 0
+    let text = 0
+    for (const row of courses as CatalogRow[]) {
+      for (const value of [row.prerequisite, row.corequisite, row.exclusion]) {
+        const tree = parsePrereq(value)
+        assertNoPunctuationLeaves(tree)
+        const json = JSON.stringify(tree)
+        if (json.includes('"type":"course"')) resolved += 1
+        if (json.includes('"type":"text"')) text += 1
+      }
+    }
+    expect(resolved + text).toBeGreaterThan(0)
+    console.info(`Prerequisite coverage: resolved=${resolved}, text=${text}`)
   })
 })
 

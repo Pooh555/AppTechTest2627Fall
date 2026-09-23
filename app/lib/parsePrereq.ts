@@ -26,7 +26,7 @@ export type FlattenedPrereq = {
   text: string[]
 }
 
-export const COURSE_CODE_PATTERN = /[A-Z]{2,4}\s?\d{3,4}[A-Z]?/g
+export const COURSE_CODE_PATTERN = /\b[A-Z]{2,4}\s?\d{3,4}[A-Z]?\b/g
 
 export function normalizeCourseCode(raw: string): string {
   const match = raw.trim().match(/^([A-Z]{2,4})\s?(\d{3,4}[A-Z]?)$/i)
@@ -54,7 +54,7 @@ function extractQualifiers(input: string): { rest: string; meta: QualifierIndex 
   let rest = input
 
   rest = rest.replace(
-    /\(\s*Grade\s+(.+?)\s+or above in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)\s*\)/gi,
+    /\(\s*Grade\s+([A-D][+-]?)\s+or above in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)\s*\)/gi,
     (_whole, grade: string, rawCode: string) => {
       const code = normalizeCourseCode(rawCode)
       mergeMeta(meta, code, { grade: String(grade).trim() })
@@ -62,7 +62,7 @@ function extractQualifiers(input: string): { rest: string; meta: QualifierIndex 
     },
   )
   rest = rest.replace(
-    /Grade\s+(.+?)\s+or above in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi,
+    /Grade\s+([A-D][+-]?)\s+or above in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi,
     (_whole, grade: string, rawCode: string) => {
       const code = normalizeCourseCode(rawCode)
       mergeMeta(meta, code, { grade: String(grade).trim() })
@@ -96,7 +96,7 @@ function tokenize(source: string, meta: QualifierIndex): Token[] {
   let text = ""
   const flushText = () => {
     const value = text.replace(/\s+/g, " ").trim()
-    if (value) tokens.push({ kind: "text", value })
+    if (value && /[\p{L}\p{N}]/u.test(value)) tokens.push({ kind: "text", value })
     text = ""
   }
 
@@ -117,20 +117,27 @@ function tokenize(source: string, meta: QualifierIndex): Token[] {
         offset += 1
         continue
       }
-      const operator = rest.match(/^\s+(AND|OR)\b/)
-      const previous = source
-        .slice(0, cursor + offset)
-        .trimEnd()
-        .slice(-1)
+      const operator = rest.match(/^\s+(AND|OR)\b/i)
       const next = source.slice(start).trimStart()[0]
+      const previousToken = tokens.at(-1)
       if (
         operator &&
-        (/[A-Z0-9)]/.test(previous) || previous === "]") &&
+        text.trim() === "" &&
+        (previousToken?.kind === "course" || previousToken?.kind === "rparen") &&
         /[A-Z0-9([]/.test(next ?? "")
       ) {
         flushText()
         tokens.push({ kind: operator[1] === "AND" ? "and" : "or" })
         offset += operator[0].length
+        continue
+      }
+      if (
+        (rest[0] === "," || rest[0] === ";") &&
+        (previousToken?.kind === "course" || previousToken?.kind === "rparen")
+      ) {
+        flushText()
+        tokens.push({ kind: "and" })
+        offset += 1
         continue
       }
       text += rest[0]
@@ -146,6 +153,12 @@ function tokenize(source: string, meta: QualifierIndex): Token[] {
     if (/[()[\]]/.test(character)) {
       flushText()
       tokens.push({ kind: character === "(" || character === "[" ? "lparen" : "rparen" })
+    } else if (
+      (character === "," || character === ";") &&
+      (tokens.at(-1)?.kind === "course" || tokens.at(-1)?.kind === "rparen")
+    ) {
+      flushText()
+      tokens.push({ kind: "and" })
     } else {
       text += character
     }
