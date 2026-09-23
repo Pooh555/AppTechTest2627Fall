@@ -18,7 +18,7 @@ import type { ThemedStyle } from "@/theme/types"
 export function FavouritesScreen() {
   const db = useSQLiteContext()
   const navigation = useNavigation<AppStackScreenProps<"Main">["navigation"]>()
-  const { codes } = useFavourites()
+  const { codes, toggleFavourite } = useFavourites()
   const { themed } = useAppTheme()
   const [courses, setCourses] = useState<CourseSummary[]>([])
   useEffect(() => {
@@ -36,6 +36,14 @@ export function FavouritesScreen() {
           <CourseRow
             course={item}
             onPress={(code) => navigation.navigate("CourseDetail", { code })}
+            action={{
+              icon: "♥",
+              label: `Remove ${item.code} from favorites`,
+              onPress: (code) => {
+                setCourses((current) => current.filter((course) => course.code !== code))
+                toggleFavourite(code)
+              },
+            }}
           />
         )}
         ListEmptyComponent={

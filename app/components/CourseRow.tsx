@@ -12,9 +12,14 @@ import { Text } from "./Text"
 export type CourseRowProps = {
   course: CourseSummary
   onPress: (code: string) => void
+  action?: {
+    label: string
+    onPress: (code: string) => void
+    icon: string
+  }
 }
 
-export const CourseRow = memo(function CourseRow({ course, onPress }: CourseRowProps) {
+export const CourseRow = memo(function CourseRow({ course, onPress, action }: CourseRowProps) {
   const { themed } = useAppTheme()
   return (
     <Pressable
@@ -25,7 +30,20 @@ export const CourseRow = memo(function CourseRow({ course, onPress }: CourseRowP
     >
       <View style={themed($top)}>
         <Text text={course.code} style={themed($code)} />
-        <SeatStatusPill status={course.seatStatus} />
+        <View style={themed($topActions)}>
+          <SeatStatusPill status={course.seatStatus} />
+          {action ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              hitSlop={4}
+              onPress={() => action.onPress(course.code)}
+              style={themed($action)}
+            >
+              <Text text={action.icon} size="lg" style={themed($actionText)} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
       <Text text={course.title} numberOfLines={2} style={themed($title)} />
       <Text
@@ -52,6 +70,21 @@ const $top: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   gap: spacing.sm,
+})
+const $topActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  flexDirection: "row",
+  gap: spacing.xs,
+})
+const $action: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 44,
+  minWidth: 44,
+  padding: spacing.xxs,
+})
+const $actionText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
 })
 
 const $code: ThemedStyle<TextStyle> = ({ colors, typography }) => ({
