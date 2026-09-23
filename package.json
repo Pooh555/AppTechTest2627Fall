@@ -49,7 +49,7 @@
     "expo-linking": "~55.0.7",
     "expo-localization": "~55.0.8",
     "expo-splash-screen": "~55.0.10",
-    "expo-sqlite": "^57.0.3",
+    "expo-sqlite": "~55.0.20",
     "expo-system-ui": "~55.0.9",
     "i18next": "^23.14.0",
     "intl-pluralrules": "^2.0.1",

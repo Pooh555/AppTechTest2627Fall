@@ -4377,10 +4377,10 @@ expo-splash-screen@~55.0.10:
   dependencies:
     "@expo/prebuild-config" "^55.0.22"
 
-expo-sqlite@^57.0.3:
-  version "57.0.3"
-  resolved "https://registry.npmjs.org/expo-sqlite/-/expo-sqlite-57.0.3.tgz"
-  integrity sha512-gbu9Nwm76DNpSK+MEhCjjjF3/EMyFE96IEDSlfO9jPiF4q48a7bef5EXnWVrwW8rvqCZKYAfSGqSpYNhhhpgIg==
+expo-sqlite@~55.0.20:
+  version "55.0.20"
+  resolved "https://registry.npmjs.org/expo-sqlite/-/expo-sqlite-55.0.20.tgz"
+  integrity sha512-6Jbomg5GpHxV3G4dWDgB7bBhZ15eOd5rFlw365Vg5p/CBpJ0KAfQOAcA8eoIemTUHTL0BWTLZlcLfbQg9Pvv/Q==
   dependencies:
     await-lock "^2.2.2"
 
