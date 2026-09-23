@@ -1,77 +1,119 @@
-# Welcome to your new ignited app!
+# HKUST Course Explorer
 
-> The latest and greatest boilerplate for Infinite Red opinions
-
-This is the boilerplate that [Infinite Red](https://infinite.red) uses as a way to test bleeding-edge changes to our React Native stack.
-
-- [Quick start documentation](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/Boilerplate.md)
-- [Full documentation](https://github.com/infinitered/ignite/blob/master/docs/README.md)
-
-## Getting Started
+## Setup and run
 
 ```bash
-yarn install
-yarn start
+npm install
+npm run build:data
+npm start
 ```
 
-To make things work on your local simulator, or on your phone, you need first to [run `eas build`](https://github.com/infinitered/ignite/blob/master/docs/expo/EAS.md). We have many shortcuts on `package.json` to make it easier:
+For a native development client, use `npm run android` or `npm run ios`. The web
+target is available with `npm run web`. The checked-in database is already built,
+so `npm run build:data` is only needed after changing either source dataset.
+
+## Platforms tested
+
+The app is structured for Expo SDK 55 and was tested with the Expo web target and
+an Android development build. The same SQLite asset/provider path is used by iOS.
+
+## Architecture and state management
+
+`app/services/courses/CourseRepository.ts` owns all dataset access. Screens receive
+the bundled `expo-sqlite` database through `SQLiteProvider` and call plain async
+repository functions for search, details, sections, and term/department filters.
+The prerequisite graph is a static generated JSON asset loaded by the repository;
+the dataset is deliberately not placed in React Context.
+
+The only shared UI state is cross-cutting state: `FavouritesContext` persists
+course codes in MMKV, while Ignite's existing `ThemeProvider` persists the light
+/dark override in MMKV. Browse, Favourites, and sections use `@shopify/flash-list`
+instead of the demo's `FlatList`, because the catalog contains about 4,000
+canonical courses and up to tens of thousands of section rows.
+
+## Data preprocessing
+
+`courses.json` is the catalog input. The schedule slice was fetched once from the
+Hugging Face `ust-archive/schedule` dataset, config `classes`, with this exact
+command:
 
 ```bash
-yarn build:ios:sim # build for ios simulator
-yarn build:ios:device # build for ios device
-yarn build:ios:prod # build for ios device
+python -c "from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='ust-archive/schedule', repo_type='dataset', revision='refs/convert/parquet', filename='classes/train/0000.parquet'))"
 ```
 
-### `./assets`
+The reproducible trimming command is:
 
-This directory is designed to organize and store various assets, making it easy for you to manage and use them in your application. The assets are further categorized into subdirectories, including `icons` and `images`:
-
-```tree
-assets
-├── icons
-└── images
+```bash
+python scripts/fetch-schedule.py
 ```
 
-**icons**
-This is where your icon assets will live. These icons can be used for buttons, navigation elements, or any other UI components. The recommended format for icons is PNG, but other formats can be used as well.
+It reads the four `term_code` values and every catalog `id` from `courses.json`,
+then keeps only matching schedule rows and writes `assets/data/schedule.json`.
+The script uses `pyarrow` and `huggingface_hub`; install them with
+`pip install huggingface_hub pyarrow` when rebuilding from scratch.
 
-Ignite comes with a built-in `Icon` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/app/components/Icon.md).
+`npm run build:data` then:
 
-**images**
-This is where your images will live, such as background images, logos, or any other graphics. You can use various formats such as PNG, JPEG, or GIF for your images.
+1. Groups catalog rows by human-facing `prefix + " " + number`, retains the most
+   recent `term_num` row as the canonical display record, and preserves every
+   offered term in `course_terms`.
+2. Joins schedule rows by the stable catalog `id` (`schedule.course_id`) and
+   `term_code`, not by row position or title.
+3. Builds `assets/data/courses.db` with indexed `courses`, `course_terms`, and
+   `sections` tables plus the `courses_fts` FTS5 table over code, title, and
+   description.
+4. Parses prerequisite, corequisite, and exclusion fields and writes
+   `assets/data/prereq-graph.json`, including reverse `unlockedBy` edges.
+5. Writes `assets/data/dataset-meta.json` for the Settings screen.
 
-Another valuable built-in component within Ignite is the `AutoImage` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/Components-AutoImage.md).
+All parsing and SQLite construction happen in the Node build script. No catalog
+preprocessing runs on-device.
 
-How to use your `icon` or `image` assets:
+## Prerequisite parsing and traversal
 
-```typescript
-import { Image } from 'react-native';
+`app/lib/parsePrereq.ts` is a pure recursive-descent parser. It normalizes course
+tokens matching `/[A-Z]{2,4}\s?\d{3,4}[A-Z]?/`, treats parentheses and square
+brackets as equivalent groups, preserves explicit AND/OR grouping, and attaches
+grade and “prior to” qualifiers to course nodes. Unresolvable prose remains a
+`text` leaf rather than being guessed as a course.
 
-const MyComponent = () => {
-  return (
-    <Image source={require('assets/images/my_image.png')} />
-  );
-};
+The explorer starts with direct prerequisite edges, expands only when a node is
+tapped, and carries an ancestor `Set`. A repeated course becomes a non-recursing
+`cycle — jump back` leaf; depth is also capped at eight. The same screen can
+invert the precomputed `unlockedBy` edges to show courses unlocked by the current
+course.
+
+## Assumptions and limitations
+
+- `id` is treated as the stable cross-term join key, even though it is reused
+  across catalog rows; `prefix + number` is the human-facing dedupe key.
+- The catalog snapshot contains four terms: 2025-26 Winter, 2025-26 Spring,
+  2025-26 Summer, and 2026-27 Fall.
+- The parser intentionally does not invent meaning for prose such as
+  “any COMP courses of 3000-level or above”; it displays that text as
+  unresolvable information.
+- Schedule availability is section-level. A course is open if a matching section
+  is open, near-full when the relevant enrollment/capacity ratio reaches 0.9,
+  and full/closed otherwise. Missing schedule data is shown as unknown.
+- CILOs, schedules, reservations, and similar nested fields remain JSON in the
+  SQLite rows so the build can preserve source detail without device-side
+  preprocessing.
+
+## Optional features implemented
+
+Three optional features were selected because they improve the core explorer
+without adding another backend: MMKV favourites for a useful return path,
+light/dark theme persistence for accessibility, and the reverse “what this
+course unlocks” prerequisite view for planning future coursework.
+
+## Validation
+
+```bash
+npm test -- --runInBand
+npm run compile
+npm run depcruise
 ```
 
-## Running Maestro end-to-end tests
-
-Follow our [Maestro Setup](https://ignitecookbook.com/docs/recipes/MaestroSetup) recipe.
-
-## Next Steps
-
-### Ignite Cookbook
-
-[Ignite Cookbook](https://ignitecookbook.com/) is an easy way for developers to browse and share code snippets (or “recipes”) that actually work.
-
-### Upgrade Ignite boilerplate
-
-Read our [Upgrade Guide](https://ignitecookbook.com/docs/recipes/UpdatingIgnite) to learn how to upgrade your Ignite project.
-
-## Community
-
-⭐️ Help us out by [starring on GitHub](https://github.com/infinitered/ignite), filing bug reports in [issues](https://github.com/infinitered/ignite/issues) or [ask questions](https://github.com/infinitered/ignite/discussions).
-
-💬 Join us on [Slack](https://join.slack.com/t/infiniteredcommunity/shared_invite/zt-1f137np4h-zPTq_CbaRFUOR_glUFs2UA) to discuss.
-
-📰 Make our Editor-in-chief happy by [reading the React Native Newsletter](https://reactnativenewsletter.com/).
+The Maestro flow in `.maestro/flows/CourseExplorer.yaml` covers searching,
+department filtering, opening detail, expanding prerequisites, and navigating to
+the linked course.
