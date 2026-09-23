@@ -2,6 +2,7 @@ import Database from "better-sqlite3"
 
 import {
   courseCodeOf,
+  dedupeSections,
   dedupeCourses,
   joinSections,
   precomputeSeatStatus,
@@ -98,6 +99,34 @@ describe("joinSections", () => {
     const joined = joinSections(courses, sections)
     expect(joined).toHaveLength(1)
     expect(joined[0].course_id).toBe("001")
+  })
+
+  describe("dedupeSections", () => {
+    it("keeps the latest timestamped snapshot for each logical section", () => {
+      const older = {
+        ...TERM_A,
+        course_id: "001",
+        section: "L1",
+        number: 1,
+        type: "LEC",
+        capacity: 100,
+        enroll: 80,
+        wait: 2,
+        open: true,
+        timestamp: "2026-09-01T00:00:00Z",
+      }
+      const latest = {
+        ...older,
+        number: 99,
+        enroll: 95,
+        wait: 12,
+        open: false,
+        timestamp: "2026-09-02T00:00:00Z",
+      }
+      const other = { ...older, section: "L2", number: 2 }
+
+      expect(dedupeSections([older, latest, other])).toEqual([latest, other])
+    })
   })
 
   it("joins using the stable id even when the same course appears in multiple terms", () => {

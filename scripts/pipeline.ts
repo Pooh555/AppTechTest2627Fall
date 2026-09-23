@@ -113,7 +113,26 @@ export function joinSections(courses: CanonicalCourse[], sections: ScheduleRow[]
     for (const term of course.offeredTerms) keys.add(`${term.course_id}\0${term.term_code}`)
     keys.add(`${course.id}\0${course.term_code}`)
   }
-  return sections.filter((section) => keys.has(`${section.course_id}\0${section.term_code}`))
+  return dedupeSections(
+    sections.filter((section) => keys.has(`${section.course_id}\0${section.term_code}`)),
+  )
+}
+
+/** Keeps the latest enrollment snapshot for each logical course section. */
+export function dedupeSections(sections: ScheduleRow[]): ScheduleRow[] {
+  const latest = new Map<string, { row: ScheduleRow; index: number }>()
+  for (const [index, section] of sections.entries()) {
+    const key = [section.course_id, section.term_code, section.type, section.section].join("\0")
+    const current = latest.get(key)
+    if (
+      !current ||
+      (section.timestamp ?? "") > (current.row.timestamp ?? "") ||
+      ((section.timestamp ?? "") === (current.row.timestamp ?? "") && index > current.index)
+    ) {
+      latest.set(key, { row: section, index })
+    }
+  }
+  return [...latest.values()].sort((a, b) => a.index - b.index).map(({ row }) => row)
 }
 
 export type SeatAggregate = {

@@ -74,3 +74,11 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** rename it to `crimson`, migrate stored `youtube` values to `crimson` during provider hydration, and retain all existing palette values. Extend contrast tests and document the mapping.
 - **Evidence:** registry-level WCAG tests already calculate all required contrast pairs; the new test will assert every renamed theme and migration mapping.
 - **Implemented evidence:** the public registry now contains `System | Light | Dark | Pastel | Sepia | Midnight | Crimson`; only the migration function recognizes the legacy persisted string and rewrites it to `crimson`.
+
+## I-9 — Duplicated course sections
+
+- **Symptom:** Course detail displays the same `LEC L1` repeatedly with changing enrollment and wait-list values.
+- **Reproduction:** `SELECT course_code, term_code, type, section, COUNT(*) FROM sections GROUP BY course_code, term_code, type, section HAVING COUNT(*) > 1` reports dozens of rows for one logical section; `COMP 1023 / 2610 / L1` has 76 rows.
+- **Root cause (confirmed):** the schedule source contains timestamped enrollment snapshots. `build-data.ts` inserts every joined snapshot into SQLite, while `CourseRepository.getSections` selects all rows.
+- **Decision:** deduplicate in `scripts/pipeline.ts` before database generation using `course_id + term_code + type + section`, retaining the lexicographically latest timestamp even when the source snapshot's internal `number` changes, and preserving source order between distinct sections. The display-layer slot dedupe remains as protection for repeated schedule blocks within one row.
+- **Test-first evidence:** `scripts/pipeline.test.ts` now asserts an older and newer snapshot collapse to the newer row while a distinct section remains.
