@@ -5,6 +5,7 @@ import { ErrorDetails } from "./ErrorDetails"
 interface Props {
   children: ReactNode
   catchErrors: "always" | "dev" | "prod" | "never"
+  fallback?: ReactNode
 }
 
 interface State {
@@ -63,14 +64,17 @@ export class ErrorBoundary extends Component<Props, State> {
 
   // Render an error UI if there's an error; otherwise, render children
   render() {
-    return this.isEnabled() && this.state.error ? (
-      <ErrorDetails
-        onReset={this.resetError}
-        error={this.state.error}
-        errorInfo={this.state.errorInfo}
-      />
-    ) : (
-      this.props.children
-    )
+    if (this.isEnabled() && this.state.error) {
+      return (
+        this.props.fallback ?? (
+          <ErrorDetails
+            onReset={this.resetError}
+            error={this.state.error}
+            errorInfo={this.state.errorInfo}
+          />
+        )
+      )
+    }
+    return this.props.children
   }
 }

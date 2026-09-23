@@ -35,6 +35,7 @@ function loadJson<T>(path: string): T {
 
 function createSchema(db: Database.Database) {
   db.exec(`
+    PRAGMA user_version = 2;
     PRAGMA journal_mode = OFF;
     PRAGMA synchronous = OFF;
 

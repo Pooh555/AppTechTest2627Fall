@@ -175,12 +175,10 @@ function useAutoPreset(props: AutoScreenProps): {
  * @returns {JSX.Element} - The rendered `ScreenWithoutScrolling` component.
  */
 function ScreenWithoutScrolling(props: ScreenProps) {
-  const { style, contentContainerStyle, children, preset } = props
+  const { style, contentContainerStyle, children } = props
   return (
     <View style={[$outerStyle, style]}>
-      <View style={[$innerStyle, preset === "fixed" && $justifyFlexEnd, contentContainerStyle]}>
-        {children}
-      </View>
+      <View style={[$innerStyle, contentContainerStyle]}>{children}</View>
     </View>
   )
 }
@@ -297,11 +295,8 @@ const $outerStyle: ViewStyle = {
   width: "100%",
 }
 
-const $justifyFlexEnd: ViewStyle = {
-  justifyContent: "flex-end",
-}
-
 const $innerStyle: ViewStyle = {
+  flex: 1,
   justifyContent: "flex-start",
   alignItems: "stretch",
 }

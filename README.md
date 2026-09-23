@@ -12,6 +12,11 @@ For a native development client, use `npm run android` or `npm run ios`. The web
 target is available with `npm run web`. The checked-in database is already built,
 so `npm run build:data` is only needed after changing either source dataset.
 
+The bundled database uses SQLite `PRAGMA user_version = 2` and the app opens it
+as `courses-2026-09-v2.db` with asset overwrite enabled, preventing stale local
+copies after a dataset rebuild. MMKV favourites require an Expo development
+build; Expo Go cannot load the native MMKV module.
+
 ## Platforms tested
 
 The app is structured for Expo SDK 55 and was tested with the Expo web target and

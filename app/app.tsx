@@ -18,7 +18,7 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { useCallback, useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
@@ -31,6 +31,7 @@ import { Text } from "./components/Text"
 import { FavouritesProvider } from "./context/FavouritesContext"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
+import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { colors as darkColors } from "./theme/colorsDark"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -39,13 +40,15 @@ import * as storage from "./utils/storage"
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 void SplashScreen.preventAutoHideAsync()
 
-// Web linking configuration
 const prefix = Linking.createURL("/")
-const config = {
-  screens: {
-    Main: "courses",
-    CourseDetail: "course/:code",
-    PrerequisiteExplorer: "course/:code/prerequisites",
+const linking = {
+  prefixes: [prefix],
+  config: {
+    screens: {
+      Main: "courses",
+      CourseDetail: "course/:code",
+      PrerequisiteExplorer: "course/:code/prerequisites",
+    },
   },
 }
 
@@ -62,19 +65,7 @@ export function App() {
   } = useNavigationPersistence(storage, NAVIGATION_PERSISTENCE_KEY)
 
   const [areFontsLoaded, fontLoadError] = useFonts(customFontsToLoad)
-  const [isDatabaseReady, setIsDatabaseReady] = useState(false)
-  const [databaseError, setDatabaseError] = useState<string | null>(null)
   const [databaseAttempt, setDatabaseAttempt] = useState(0)
-  const onDatabaseInit = useCallback(async () => {
-    setDatabaseError(null)
-    setIsDatabaseReady(true)
-    await SplashScreen.hideAsync()
-  }, [])
-  const onDatabaseError = useCallback((error: Error) => {
-    setDatabaseError(error.message)
-    setIsDatabaseReady(false)
-    void SplashScreen.hideAsync()
-  }, [])
 
   useEffect(() => {
     if (isNavigationStateRestored && (areFontsLoaded || fontLoadError)) {
@@ -90,49 +81,56 @@ export function App() {
     )
   }
 
-  const linking = {
-    prefixes: [prefix],
-    config,
-  }
-
-  // otherwise, we're ready to render the app
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <ThemeProvider>
           <FavouritesProvider>
-            <SQLiteProvider
+            <ErrorBoundary
               key={databaseAttempt}
-              databaseName="courses-2026-09.db"
-              assetSource={{ assetId: require("../assets/data/courses.db") }}
-              useSuspense={false}
-              onInit={onDatabaseInit}
-              onError={onDatabaseError}
+              catchErrors="always"
+              fallback={<RetryScreen onRetry={() => setDatabaseAttempt((value) => value + 1)} />}
             >
-              {databaseError ? (
-                <Pressable
-                  style={styles.retry}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    setDatabaseError(null)
-                    setIsDatabaseReady(false)
-                    setDatabaseAttempt((value) => value + 1)
+              <Suspense fallback={<Splash />}>
+                <SQLiteProvider
+                  databaseName="courses-2026-09-v2.db"
+                  assetSource={{
+                    assetId: require("../assets/data/courses.db"),
+                    forceOverwrite: true,
                   }}
+                  useSuspense
                 >
-                  <Text text={`Unable to open course data: ${databaseError}. Tap to retry.`} />
-                </Pressable>
-              ) : isDatabaseReady ? (
-                <AppNavigator
-                  linking={linking}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              ) : null}
-            </SQLiteProvider>
+                  <AppNavigator
+                    linking={linking}
+                    initialState={initialNavigationState}
+                    onStateChange={onNavigationStateChange}
+                  />
+                </SQLiteProvider>
+              </Suspense>
+            </ErrorBoundary>
           </FavouritesProvider>
         </ThemeProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
+  )
+}
+
+function Splash() {
+  return (
+    <View style={styles.bootScreen}>
+      <ActivityIndicator color={darkColors.primary} />
+    </View>
+  )
+}
+
+function RetryScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.retry}>
+      <Text text="Unable to open course data." preset="subheading" />
+      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retryButton}>
+        <Text text="Retry" />
+      </Pressable>
+    </View>
   )
 }
 
@@ -148,5 +146,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 24,
+  },
+  retryButton: {
+    marginTop: 16,
+    padding: 16,
   },
 })
