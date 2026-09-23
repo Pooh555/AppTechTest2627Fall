@@ -44,6 +44,7 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Root cause (confirmed):** theme context reduces stored values to `"light"`/`"dark"` and the theme object is selected with a two-case switch. Components do not have semantic seat-status foreground tokens.
 - **Decision:** introduce a typed theme registry with system/light/dark plus four selectable palettes, migrate the legacy key/value, and add contrast tests over all semantic tokens.
 - **Evidence:** `theme/context.tsx`, `theme/types.ts`, `theme/theme.ts`, `SettingsScreen.tsx`, and `SeatStatusPill.tsx`.
+- **Implemented evidence:** `theme/registry.ts` is the single palette registry for six concrete themes plus System selection. `registry.test.ts` checks text, tint, and every seat-status foreground/background pair at WCAG AA contrast.
 
 ## I-5 — Architecture and styling consistency audit
 

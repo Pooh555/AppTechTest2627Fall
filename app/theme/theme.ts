@@ -1,23 +1,19 @@
-import { colors as colorsLight } from "./colors"
-import { colors as colorsDark } from "./colorsDark"
-import { spacing as spacingLight } from "./spacing"
-import { spacing as spacingDark } from "./spacingDark"
+import { createThemeDefinition, type ThemeId } from "./registry"
+import { spacing } from "./spacing"
 import { timing } from "./timing"
 import type { Theme } from "./types"
 import { typography } from "./typography"
 
-// Here we define our themes.
-export const lightTheme: Theme = {
-  colors: colorsLight,
-  spacing: spacingLight,
-  typography,
-  timing,
-  isDark: false,
+export function createTheme(id: Exclude<ThemeId, "system">): Theme {
+  const definition = createThemeDefinition(id)
+  return {
+    colors: definition.colors,
+    spacing,
+    typography,
+    timing,
+    isDark: definition.isDark,
+  }
 }
-export const darkTheme: Theme = {
-  colors: colorsDark,
-  spacing: spacingDark,
-  typography,
-  timing,
-  isDark: true,
-}
+
+export const lightTheme = createTheme("light")
+export const darkTheme = createTheme("dark")

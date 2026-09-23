@@ -18,7 +18,7 @@ export function SeatStatusPill({ status }: { status: SeatStatus }) {
   const { themed } = useAppTheme()
   return (
     <View testID={`seat-pill-${status}`} style={themed([$pill, $tone[status]])}>
-      <Text text={LABELS[status]} size="xxs" style={themed($label)} />
+      <Text text={LABELS[status]} size="xxs" style={themed($label(status))} />
     </View>
   )
 }
@@ -29,15 +29,24 @@ const $pill: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   borderRadius: 999,
 })
 
-const $label: ThemedStyle<TextStyle> = () => ({
-  color: "#ffffff",
-  fontWeight: "600",
-})
+const $label =
+  (status: SeatStatus): ThemedStyle<TextStyle> =>
+  ({ colors }) => ({
+    color:
+      status === "open"
+        ? colors.onSeatOpen
+        : status === "near-full"
+          ? colors.onSeatNearFull
+          : status === "full"
+            ? colors.onSeatFull
+            : colors.text,
+    fontWeight: "600",
+  })
 
 const $tone: Record<SeatStatus, ThemedStyle<ViewStyle>> = {
-  "open": ({ colors }) => ({ backgroundColor: colors.successBackground }),
-  "near-full": ({ colors }) => ({ backgroundColor: colors.warningBackground }),
-  "full": ({ colors }) => ({ backgroundColor: colors.dangerBackground }),
+  "open": ({ colors }) => ({ backgroundColor: colors.seatOpen }),
+  "near-full": ({ colors }) => ({ backgroundColor: colors.seatNearFull }),
+  "full": ({ colors }) => ({ backgroundColor: colors.seatFull }),
   "n/a": ({ colors }) => ({ backgroundColor: colors.surfaceMuted }),
   "unknown": ({ colors }) => ({ backgroundColor: colors.palette.neutral500 }),
 }

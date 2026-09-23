@@ -32,8 +32,8 @@ import { FavouritesProvider } from "./context/FavouritesContext"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
-import { colors as darkColors } from "./theme/colorsDark"
 import { ThemeProvider } from "./theme/context"
+import { createTheme } from "./theme/theme"
 import { customFontsToLoad } from "./theme/typography"
 import * as storage from "./utils/storage"
 
@@ -118,7 +118,7 @@ export function App() {
 function Splash() {
   return (
     <View style={styles.bootScreen}>
-      <ActivityIndicator color={darkColors.primary} />
+      <ActivityIndicator color={createTheme("dark").colors.primary} />
     </View>
   )
 }
@@ -137,7 +137,7 @@ function RetryScreen({ onRetry }: { onRetry: () => void }) {
 const styles = StyleSheet.create({
   bootScreen: {
     alignItems: "center",
-    backgroundColor: darkColors.background,
+    backgroundColor: createTheme("dark").colors.background,
     flex: 1,
     justifyContent: "center",
   },
