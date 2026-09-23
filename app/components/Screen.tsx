@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingViewProps,
   LayoutChangeEvent,
   Platform,
+  ScrollView,
   ScrollViewProps,
   StyleProp,
   View,
@@ -205,26 +206,31 @@ function ScreenWithScrolling(props: ScreenProps) {
   // More info at: https://reactnavigation.org/docs/use-scroll-to-top/
   useScrollToTop(ref)
 
+  const commonProps = {
+    ...{ keyboardShouldPersistTaps, scrollEnabled, ref },
+    ...ScrollViewProps,
+    onLayout: (e: LayoutChangeEvent) => {
+      onLayout(e)
+      ScrollViewProps?.onLayout?.(e)
+    },
+    onContentSizeChange: (w: number, h: number) => {
+      onContentSizeChange(w, h)
+      ScrollViewProps?.onContentSizeChange?.(w, h)
+    },
+    style: [$outerStyle, ScrollViewProps?.style, style],
+    contentContainerStyle: [
+      $innerStyle,
+      ScrollViewProps?.contentContainerStyle,
+      contentContainerStyle,
+    ],
+  }
+
+  if (Platform.OS === "web") {
+    return <ScrollView {...commonProps}>{children}</ScrollView>
+  }
+
   return (
-    <KeyboardAwareScrollView
-      bottomOffset={keyboardBottomOffset}
-      {...{ keyboardShouldPersistTaps, scrollEnabled, ref }}
-      {...ScrollViewProps}
-      onLayout={(e) => {
-        onLayout(e)
-        ScrollViewProps?.onLayout?.(e)
-      }}
-      onContentSizeChange={(w: number, h: number) => {
-        onContentSizeChange(w, h)
-        ScrollViewProps?.onContentSizeChange?.(w, h)
-      }}
-      style={[$outerStyle, ScrollViewProps?.style, style]}
-      contentContainerStyle={[
-        $innerStyle,
-        ScrollViewProps?.contentContainerStyle,
-        contentContainerStyle,
-      ]}
-    >
+    <KeyboardAwareScrollView bottomOffset={keyboardBottomOffset} {...commonProps}>
       {children}
     </KeyboardAwareScrollView>
   )
@@ -268,7 +274,7 @@ export function Screen(props: ScreenProps) {
       />
 
       <KeyboardAvoidingView
-        behavior={isIos ? "padding" : "height"}
+        behavior={Platform.OS === "web" ? undefined : isIos ? "padding" : "height"}
         keyboardVerticalOffset={keyboardOffset}
         {...KeyboardAvoidingViewProps}
         style={[$styles.flex1, KeyboardAvoidingViewProps?.style]}

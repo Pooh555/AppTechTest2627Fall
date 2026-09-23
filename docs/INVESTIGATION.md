@@ -138,6 +138,13 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** remove the standalone term selector and obsolete DepartmentSheet/TermSelector components; make `CourseFilters.departments` drive a parameterized department `IN` clause backed by `idx_courses_department`. Terms remain available inside Advanced Filters.
 - **Evidence:** generated database no longer creates the temporary attribute relation; department query plans use the existing department index.
 
+## I-20 — Browser scrolling regression
+
+- **Symptom:** scrolling stopped working in the browser build after the shared screen scrolling changes.
+- **Root cause (confirmed):** `ScreenWithScrolling` mounted `react-native-keyboard-controller`'s reanimated `KeyboardAwareScrollView` for every platform. That component is intended for native keyboard handling and is not the appropriate web scroll primitive.
+- **Decision:** render React Native's standard `ScrollView` on web, while retaining `KeyboardAwareScrollView` on iOS and Android. Disable keyboard-avoiding behavior on web because browsers manage viewport/input behavior themselves.
+- **Evidence:** the web bundle now exports successfully with the platform branch; TypeScript, ESLint, Jest, and Prettier pass after the change.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.
