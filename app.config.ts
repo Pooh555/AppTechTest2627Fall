@@ -7,6 +7,7 @@ import { ExpoConfig, ConfigContext } from "@expo/config"
  * See https://docs.expo.dev/config-plugins/plugins/#add-typescript-support-and-convert-to-dynamic-app-config
  */
 import "tsx/cjs"
+import withAndroidLifecycleGuard from "./plugins/withAndroidLifecycleGuard"
 
 /**
  * @param config ExpoConfig coming from the static config app.json if it exists
@@ -36,6 +37,6 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
         ],
       },
     },
-    plugins: [...existingPlugins],
+    plugins: [...existingPlugins, withAndroidLifecycleGuard] as unknown as ExpoConfig["plugins"],
   }
 }
