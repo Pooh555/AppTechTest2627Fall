@@ -18,23 +18,25 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { useFonts } from "expo-font"
+import * as SplashScreen from "expo-splash-screen"
+import { Pressable } from "react-native"
 import * as Linking from "expo-linking"
+import { SQLiteProvider } from "expo-sqlite"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
-import { SQLiteProvider } from "expo-sqlite"
 
 import { FavouritesProvider } from "./context/FavouritesContext"
-import { initI18n } from "./i18n"
+import { Text } from "./components/Text"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
-import { loadDateFnsLocale } from "./utils/formatDate"
 import * as storage from "./utils/storage"
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
+void SplashScreen.preventAutoHideAsync()
 
 // Web linking configuration
 const prefix = Linking.createURL("/")
@@ -59,12 +61,17 @@ export function App() {
   } = useNavigationPersistence(storage, NAVIGATION_PERSISTENCE_KEY)
 
   const [areFontsLoaded, fontLoadError] = useFonts(customFontsToLoad)
-  const [isI18nInitialized, setIsI18nInitialized] = useState(false)
-
-  useEffect(() => {
-    initI18n()
-      .then(() => setIsI18nInitialized(true))
-      .then(() => loadDateFnsLocale())
+  const [isDatabaseReady, setIsDatabaseReady] = useState(false)
+  const [databaseError, setDatabaseError] = useState<string | null>(null)
+  const [databaseAttempt, setDatabaseAttempt] = useState(0)
+  const onDatabaseInit = useCallback(async () => {
+    setDatabaseError(null)
+    setIsDatabaseReady(true)
+    await SplashScreen.hideAsync()
+  }, [])
+  const onDatabaseError = useCallback((error: Error) => {
+    setDatabaseError(error.message)
+    setIsDatabaseReady(false)
   }, [])
 
   // Before we show the app, we have to wait for our state to be ready.
@@ -73,7 +80,7 @@ export function App() {
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
+  if (!isNavigationStateRestored || (!areFontsLoaded && !fontLoadError)) {
     return null
   }
 
@@ -89,15 +96,31 @@ export function App() {
         <ThemeProvider>
           <FavouritesProvider>
             <SQLiteProvider
+              key={databaseAttempt}
               databaseName="courses-2026-09.db"
               assetSource={{ assetId: require("../assets/data/courses.db") }}
               useSuspense={false}
+              onInit={onDatabaseInit}
+              onError={onDatabaseError}
             >
-              <AppNavigator
-                linking={linking}
-                initialState={initialNavigationState}
-                onStateChange={onNavigationStateChange}
-              />
+              {databaseError ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setDatabaseError(null)
+                    setIsDatabaseReady(false)
+                    setDatabaseAttempt((value) => value + 1)
+                  }}
+                >
+                  <Text text={`Unable to open course data: ${databaseError}. Tap to retry.`} />
+                </Pressable>
+              ) : isDatabaseReady ? (
+                <AppNavigator
+                  linking={linking}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              ) : null}
             </SQLiteProvider>
           </FavouritesProvider>
         </ThemeProvider>
