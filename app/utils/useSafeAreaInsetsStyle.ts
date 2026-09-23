@@ -33,14 +33,13 @@ export type SafeAreaInsetsStyle<
 export function useSafeAreaInsetsStyle<
   Property extends "padding" | "margin" = "padding",
   Edges extends Array<ExtendedEdge> = [],
->(
-  safeAreaEdges: Edges = [] as unknown as Edges,
-  property: Property = "padding" as Property,
-): SafeAreaInsetsStyle<Property, Edges> {
+>(safeAreaEdges?: Edges, property?: Property): SafeAreaInsetsStyle<Property, Edges> {
   const insets = useSafeAreaInsets()
+  const edges = safeAreaEdges ?? []
+  const styleProperty = property ?? "padding"
 
-  return safeAreaEdges.reduce((acc, e) => {
+  return edges.reduce((acc, e) => {
     const value = edgeInsetMap[e] ?? e
-    return { ...acc, [`${property}${propertySuffixMap[e]}`]: insets[value] }
+    return { ...acc, [`${styleProperty}${propertySuffixMap[e]}`]: insets[value] }
   }, {}) as SafeAreaInsetsStyle<Property, Edges>
 }
