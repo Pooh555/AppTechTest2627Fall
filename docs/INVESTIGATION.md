@@ -91,10 +91,10 @@ The deliberate classification decision is that one- and two-letter inputs remain
 
 ## I-12 — Advanced structured course filters
 
-- **Symptom:** Browse supports only one department and one selected term; users cannot filter by open seats or course attributes.
-- **Root cause (confirmed):** `SearchFilters` only contains `termCode` and `departmentCode`; `courses.attributes` is stored as JSON and has no queryable/indexed relation.
-- **Decision:** add a pure `CourseFilters` shape and parameterized search-plan clauses. Generate an indexed `course_attributes(code, attribute)` relation from the existing attribute JSON, and expose a modal filter sheet from Browse.
-- **Evidence:** the bundled database contains Common Core labels such as `CC26`, but has no attribute table or attribute index.
+- **Symptom:** Browse supports only one selected term in the header; users cannot filter by multiple departments or open seats in the advanced sheet.
+- **Root cause (confirmed):** `SearchFilters` only contains `termCode` and `departmentCode`; the advanced UI had no multi-department filter and exposed raw attribute codes instead.
+- **Decision:** add a pure `CourseFilters` shape with `terms`, `departments`, and `openSeatsOnly`; expose department multi-select in the modal and generate a parameterized `department_code IN (...)` clause.
+- **Evidence:** `idx_courses_department` already covers the direct department filter; the generated attribute relation was removed because numerical attribute codes were not a useful user-facing filter.
 
 ## I-13 — Inline unfavourite action
 
@@ -110,10 +110,38 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** use `@expo/vector-icons` Ionicons with themed active/inactive colors, typography-derived labels, and bottom inset padding.
 - **Evidence:** `MainNavigator.tsx` only sets `tabBarStyle`, `tabBarActiveTintColor`, and `tabBarInactiveTintColor`; no icon renderer exists.
 
+## I-16 — Prerequisite Explorer vertical scrolling
+
+- **Symptom:** deep Requires and long Unlocks views stop before their final rows.
+- **Root cause (confirmed):** the shared scrolling `Screen` content container used `flex: 1`, forcing content to the viewport height instead of allowing the scroll view content to grow.
+- **Decision:** change the scroll content container to `flexGrow: 1`, explicitly enable vertical scrolling and bottom safe-area content on the Explorer, and keep tree rows as ordinary nested views/pressables without competing scroll handlers.
+- **Evidence:** Explorer has one outer `Screen` scroll container and no nested scroll handlers; the old `$innerStyle.flex` constrained the content height.
+
+## I-17 — Browse list scroll stability
+
+- **Symptom:** extended Browse scrolling can stall while rows are recycled.
+- **Root cause (confirmed):** Browse supplied an inline render callback without an explicit stable callback and did not document the FlashList v2 sizing behavior; `CourseRow` is already memoized and keys are unique course codes.
+- **Decision:** memoize Browse's render callback, retain deterministic code keys, and rely on FlashList v2's automatic measurement because this installed version does not expose `estimatedItemSize` in its typed API.
+- **Evidence:** FlashList v2 type definitions have no `estimatedItemSize`; no Browse scroll-state updates or scroll handlers exist.
+
+## I-18 — Favorite icon consistency
+
+- **Symptom:** Course Detail used star glyphs while Favorites and navigation used hearts.
+- **Root cause (confirmed):** `CourseDetailScreen` rendered `★`/`☆` directly.
+- **Decision:** use Ionicons `heart`/`heart-outline` in Course Detail and the reusable CourseRow action, with state-specific accessibility labels.
+- **Evidence:** repository search found no remaining star favorite glyphs after the change.
+
+## I-19 — Browse header and department filters
+
+- **Symptom:** Browse header duplicated term selection while advanced filters exposed numerical attributes.
+- **Root cause (confirmed):** `TermSelector` was rendered as a standalone header control; `AdvancedFilterSheet` accepted attribute strings and the search planner generated attribute relation clauses.
+- **Decision:** remove the standalone term selector and obsolete DepartmentSheet/TermSelector components; make `CourseFilters.departments` drive a parameterized department `IN` clause backed by `idx_courses_department`. Terms remain available inside Advanced Filters.
+- **Evidence:** generated database no longer creates the temporary attribute relation; department query plans use the existing department index.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.
-- **Filters:** `course_attributes` contains 3,085 normalized attribute rows; the generated attribute index is used by the correlated filter lookup. `EXPLAIN QUERY PLAN` shows indexed lookups for terms, seat aggregates, and attributes.
+- **Filters:** the advanced sheet now offers departments, terms, and open seats. `EXPLAIN QUERY PLAN` shows indexed lookups for terms, seat aggregates, and the existing department index.
 - **Favorites:** `CourseRow` exposes an accessible inline action with a 44dp minimum target; the Favorites screen removes the row before the MMKV-backed refresh completes.
 - **Tabs:** Main navigation renders Ionicons, theme tint colors, caption typography, and bottom-inset-aware height.
 - **Validation:** TypeScript, ESLint, Jest, dependency-cruiser, and Prettier pass. Maestro remains unavailable in this environment, so device execution is still pending on a runner with the CLI and app build.
