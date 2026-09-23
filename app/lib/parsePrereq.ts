@@ -29,8 +29,6 @@ export type FlattenedPrereq = {
 export const COURSE_CODE_PATTERN = /[A-Z]{2,4}\s?\d{3,4}[A-Z]?/g
 
 const COURSE_TOKEN = /^[A-Z]{2,4}\s?\d{3,4}[A-Z]?/
-const AND_TOKEN = /^(AND)\b/i
-const OR_TOKEN = /^(OR)\b/i
 
 export function normalizeCourseCode(raw: string): string {
   const match = raw.trim().match(/^([A-Z]{2,4})\s?(\d{3,4}[A-Z]?)$/i)
@@ -74,11 +72,14 @@ function extractQualifiers(input: string): { rest: string; meta: QualifierIndex 
     },
   )
 
-  rest = rest.replace(/Pass grade in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi, (_whole, rawCode: string) => {
-    const code = normalizeCourseCode(rawCode)
-    mergeMeta(meta, code, { grade: "Pass" })
-    return ` ${code} `
-  })
+  rest = rest.replace(
+    /Pass grade in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi,
+    (_whole, rawCode: string) => {
+      const code = normalizeCourseCode(rawCode)
+      mergeMeta(meta, code, { grade: "Pass" })
+      return ` ${code} `
+    },
+  )
 
   rest = rest.replace(
     /([A-Z]{2,4}\s?\d{3,4}[A-Z]?)\s*\(\s*prior to\s+([^)]+?)\s*\)/gi,
@@ -94,56 +95,61 @@ function extractQualifiers(input: string): { rest: string; meta: QualifierIndex 
 
 function tokenize(source: string, meta: QualifierIndex): Token[] {
   const tokens: Token[] = []
-  let remaining = source.trim()
-
-  while (remaining.length > 0) {
-    remaining = remaining.replace(/^[,\s]+/, "")
-    if (!remaining) break
-
-    if (remaining[0] === "(" || remaining[0] === "[") {
-      tokens.push({ kind: "lparen" })
-      remaining = remaining.slice(1)
-      continue
-    }
-    if (remaining[0] === ")" || remaining[0] === "]") {
-      tokens.push({ kind: "rparen" })
-      remaining = remaining.slice(1)
-      continue
-    }
-
-    const andMatch = remaining.match(AND_TOKEN)
-    if (andMatch) {
-      tokens.push({ kind: "and" })
-      remaining = remaining.slice(andMatch[0].length)
-      continue
-    }
-    const orMatch = remaining.match(OR_TOKEN)
-    if (orMatch) {
-      tokens.push({ kind: "or" })
-      remaining = remaining.slice(orMatch[0].length)
-      continue
-    }
-
-    const courseMatch = remaining.match(COURSE_TOKEN)
-    if (courseMatch) {
-      const code = normalizeCourseCode(courseMatch[0])
-      const courseMeta = meta.get(code)
-      tokens.push(courseMeta ? { kind: "course", code, meta: courseMeta } : { kind: "course", code })
-      remaining = remaining.slice(courseMatch[0].length)
-      continue
-    }
-
-    const nextSpecial = remaining.search(/\s+(AND|OR)\b|[()[\]]/i)
-    const chunk = (nextSpecial === -1 ? remaining : remaining.slice(0, nextSpecial)).trim()
-    if (chunk) {
-      tokens.push({ kind: "text", value: chunk })
-      remaining = nextSpecial === -1 ? "" : remaining.slice(nextSpecial)
-    } else {
-      tokens.push({ kind: "text", value: remaining.trim() })
-      remaining = ""
-    }
+  let text = ""
+  const flushText = () => {
+    const value = text.replace(/\s+/g, " ").trim()
+    if (value) tokens.push({ kind: "text", value })
+    text = ""
   }
 
+  const pattern = /[A-Z]{2,4}\s?\d{3,4}[A-Z]?/g
+  let cursor = 0
+  for (const match of source.matchAll(pattern)) {
+    const start = match.index ?? 0
+    const before = source.slice(cursor, start)
+    let offset = 0
+    while (offset < before.length) {
+      const rest = before.slice(offset)
+      const punctuation = rest.match(/^[()[\]]/)
+      if (punctuation) {
+        flushText()
+        tokens.push({ kind: punctuation[0] === "(" || punctuation[0] === "[" ? "lparen" : "rparen" })
+        offset += 1
+        continue
+      }
+      const operator = rest.match(/^\s+(AND|OR)\b/)
+      const previous = source.slice(0, cursor + offset).trimEnd().slice(-1)
+      const next = source.slice(start).trimStart()[0]
+      if (
+        operator &&
+        (/[A-Z0-9)]/.test(previous) || previous === "]") &&
+        /[A-Z0-9([]/.test(next ?? "")
+      ) {
+        flushText()
+        tokens.push({ kind: operator[1] === "AND" ? "and" : "or" })
+        offset += operator[0].length
+        continue
+      }
+      text += rest[0]
+      offset += 1
+    }
+    flushText()
+    const code = normalizeCourseCode(match[0])
+    const courseMeta = meta.get(code)
+    tokens.push(
+      courseMeta ? { kind: "course", code, meta: courseMeta } : { kind: "course", code },
+    )
+    cursor = start + match[0].length
+  }
+  for (const character of source.slice(cursor)) {
+    if (/[()[\]]/.test(character)) {
+      flushText()
+      tokens.push({ kind: character === "(" || character === "[" ? "lparen" : "rparen" })
+    } else {
+      text += character
+    }
+  }
+  flushText()
   return tokens
 }
 
@@ -164,13 +170,20 @@ function parseTokens(tokens: Token[]): PrereqNode {
   const peek = () => tokens[index]
   const take = () => tokens[index++]
 
-  function parseExpression(): PrereqNode {
+  function parseExpression(stopOnRParen = false): PrereqNode {
     const parts: PrereqNode[] = [parseTerm()]
     const ops: Array<"and" | "or"> = []
 
-    while (peek()?.kind === "and" || peek()?.kind === "or") {
-      ops.push(take()!.kind as "and" | "or")
-      parts.push(parseTerm())
+    while (peek()) {
+      if (peek()?.kind === "and" || peek()?.kind === "or") {
+        ops.push(take()!.kind as "and" | "or")
+        parts.push(parseTerm())
+      } else if (peek()?.kind === "rparen" && stopOnRParen) {
+        break
+      } else {
+        ops.push("and")
+        parts.push(parseTerm())
+      }
     }
 
     if (ops.length === 0) return parts[0]
@@ -190,7 +203,7 @@ function parseTokens(tokens: Token[]): PrereqNode {
 
     if (token.kind === "lparen") {
       take()
-      const inner = parseExpression()
+      const inner = parseExpression(true)
       if (peek()?.kind === "rparen") take()
       return inner
     }
@@ -207,13 +220,23 @@ function parseTokens(tokens: Token[]): PrereqNode {
       return { type: "text", value: token.value }
     }
 
-    // Stray operator — skip so we still parse the rest.
+    if (token.kind === "rparen") {
+      take()
+      return parseTerm()
+    }
+
     take()
     return parseTerm()
   }
 
   const tree = parseExpression()
-  return tree
+  const trailing = tokens.slice(index).filter((token) => token.kind !== "rparen")
+  if (trailing.length === 0) return tree
+  const text = trailing
+    .map((token) => (token.kind === "text" ? token.value : token.kind === "course" ? token.code : ""))
+    .filter(Boolean)
+    .join(" ")
+  return text ? collapseNode("and", [tree, { type: "text", value: text }]) : tree
 }
 
 export function parsePrereq(raw: string | null | undefined): PrereqNode {

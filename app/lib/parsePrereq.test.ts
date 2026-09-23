@@ -106,6 +106,41 @@ describe("parsePrereq", () => {
       text: [],
     })
   })
+
+  it("keeps lowercase operators in prose and extracts later course codes", () => {
+    expect(parsePrereq("Pass in Mathematics and Statistics; COMP 1021")).toEqual({
+      type: "and",
+      children: [
+        { type: "text", value: "Pass in Mathematics and Statistics;" },
+        { type: "course", code: "COMP 1021" },
+      ],
+    })
+  })
+
+  it("does not lose trailing content after an unbalanced parenthesis", () => {
+    expect(parsePrereq("(COMP 1021 OR COMP 1028")).toEqual({
+      type: "or",
+      children: [
+        { type: "course", code: "COMP 1021" },
+        { type: "course", code: "COMP 1028" },
+      ],
+    })
+    expect(parsePrereq("COMP 1021) AND COMP 1028")).toEqual({
+      type: "and",
+      children: [
+        { type: "course", code: "COMP 1021" },
+        { type: "course", code: "COMP 1028" },
+      ],
+    })
+  })
+
+  it("parses grade C-minus qualifiers", () => {
+    expect(parsePrereq("Grade C- or above in MATH 1013")).toEqual({
+      type: "course",
+      code: "MATH 1013",
+      meta: { grade: "C-" },
+    })
+  })
 })
 
 describe("expandPrereq cycle safety", () => {

@@ -1,4 +1,4 @@
-import { seatStatusForSections } from "../app/lib/seatStatus"
+import Database from "better-sqlite3"
 
 import {
   courseCodeOf,
@@ -7,11 +7,14 @@ import {
   type CatalogRow,
   type ScheduleRow,
 } from "./pipeline"
+import { seatStatusForSections } from "../app/lib/seatStatus"
 
 const TERM_A = { term_num: 104, term_code: "2610", term_name: "2026-27 Fall" }
 const TERM_B = { term_num: 101, term_code: "2520", term_name: "2025-26 Winter" }
 
-function course(partial: Partial<CatalogRow> & Pick<CatalogRow, "id" | "prefix" | "number">): CatalogRow {
+function course(
+  partial: Partial<CatalogRow> & Pick<CatalogRow, "id" | "prefix" | "number">,
+): CatalogRow {
   return {
     department_code: "COMP",
     department_nickname: "COMP",
@@ -120,18 +123,31 @@ describe("joinSections", () => {
 
 describe("seatStatusForSections", () => {
   it("marks open, near-full (>= 0.9), and full/closed", () => {
-    expect(
-      seatStatusForSections([{ capacity: 100, enroll: 40, open: true }]),
-    ).toBe("open")
-    expect(
-      seatStatusForSections([{ capacity: 100, enroll: 90, open: true }]),
-    ).toBe("near-full")
-    expect(
-      seatStatusForSections([{ capacity: 100, enroll: 100, open: true }]),
-    ).toBe("full")
-    expect(
-      seatStatusForSections([{ capacity: 100, enroll: 10, open: false }]),
-    ).toBe("full")
+    expect(seatStatusForSections([{ capacity: 100, enroll: 40, open: true }])).toBe("open")
+    expect(seatStatusForSections([{ capacity: 100, enroll: 90, open: true }])).toBe("near-full")
+    expect(seatStatusForSections([{ capacity: 100, enroll: 100, open: true }])).toBe("full")
+    expect(seatStatusForSections([{ capacity: 100, enroll: 10, open: false }])).toBe("full")
     expect(seatStatusForSections([])).toBe("unknown")
+  })
+})
+
+describe("generated database", () => {
+  it("keeps FTS rowids aligned with course rowids and required indexes", () => {
+    const db = new Database("assets/data/courses.db", { readonly: true })
+    expect(
+      db
+        .prepare(
+          "SELECT COUNT(*) AS count FROM courses c LEFT JOIN courses_fts f ON f.rowid = c.rowid WHERE f.rowid IS NULL",
+        )
+        .get(),
+    ).toEqual({ count: 0 })
+    expect(
+      db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_sections_code_term', 'idx_course_terms_code_term') ORDER BY name",
+        )
+        .all(),
+    ).toEqual([{ name: "idx_course_terms_code_term" }, { name: "idx_sections_code_term" }])
+    db.close()
   })
 })

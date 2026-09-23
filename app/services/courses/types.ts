@@ -105,4 +105,11 @@ export type SearchCoursesParams = {
   departmentCode?: string | null
   termCode?: string | null
   codes?: string[]
+  limit?: number
+  offset?: number
+}
+
+export type SearchCoursesResult = {
+  rows: CourseSummary[]
+  hasMore: boolean
 }

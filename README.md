@@ -33,7 +33,7 @@ canonical courses and up to tens of thousands of section rows.
 
 ## Data preprocessing
 
-`courses.json` is the catalog input. The schedule slice was fetched once from the
+`courses.json` is the catalog input. The schedule slice is fetched from the
 Hugging Face `ust-archive/schedule` dataset, config `classes`, with this exact
 command:
 
@@ -47,8 +47,10 @@ The reproducible trimming command is:
 python scripts/fetch-schedule.py
 ```
 
-It reads the four `term_code` values and every catalog `id` from `courses.json`,
-then keeps only matching schedule rows and writes `assets/data/schedule.json`.
+It performs the download above, reads the term codes and every catalog `id` from
+`courses.json`, then keeps only matching schedule rows and writes
+`assets/data/schedule.json`. This is the command used to reproduce the checked-in
+schedule asset.
 The script uses `pyarrow` and `huggingface_hub`; install them with
 `pip install huggingface_hub pyarrow` when rebuilding from scratch.
 
@@ -59,9 +61,10 @@ The script uses `pyarrow` and `huggingface_hub`; install them with
    offered term in `course_terms`.
 2. Joins schedule rows by the stable catalog `id` (`schedule.course_id`) and
    `term_code`, not by row position or title.
-3. Builds `assets/data/courses.db` with indexed `courses`, `course_terms`, and
-   `sections` tables plus the `courses_fts` FTS5 table over code, title, and
-   description.
+3. Builds `assets/data/courses.db` (currently about 51 MB) with indexed
+   `courses`, `course_terms`, and `sections` tables plus the `courses_fts` FTS5
+   table over code, title, and description. FTS rows use the matching
+   `courses.rowid`.
 4. Parses prerequisite, corequisite, and exclusion fields and writes
    `assets/data/prereq-graph.json`, including reverse `unlockedBy` edges.
 5. Writes `assets/data/dataset-meta.json` for the Settings screen.

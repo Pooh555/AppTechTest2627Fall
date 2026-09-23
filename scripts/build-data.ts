@@ -3,14 +3,13 @@
  * Build assets/data/courses.db and assets/data/prereq-graph.json
  * from courses.json + the trimmed schedule slice.
  */
+import Database from "better-sqlite3"
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
-import Database from "better-sqlite3"
-
-import { flattenPrereq, parsePrereq } from "../app/lib/parsePrereq"
 import type { CatalogRow, CanonicalCourse, ScheduleRow } from "./pipeline"
 import { dedupeCourses, joinSections } from "./pipeline"
+import { collectCourseCodes, flattenPrereq, parsePrereq } from "../app/lib/parsePrereq"
 
 const ROOT = join(__dirname, "..")
 const COURSES_JSON = join(ROOT, "courses.json")
@@ -82,6 +81,7 @@ function createSchema(db: Database.Database) {
       PRIMARY KEY (code, term_code)
     );
     CREATE INDEX idx_course_terms_term ON course_terms(term_code);
+    CREATE INDEX idx_course_terms_code_term ON course_terms(code, term_code);
     CREATE INDEX idx_course_terms_id ON course_terms(course_id);
 
     CREATE VIRTUAL TABLE courses_fts USING fts5(
@@ -253,7 +253,7 @@ function buildGraph(courses: CanonicalCourse[]): Record<string, GraphEntry> {
   }
 
   for (const [code, entry] of Object.entries(graph)) {
-    const targets = [...entry.and, ...entry.or.flat()]
+    const targets = collectCourseCodes(entry.tree)
     for (const target of targets) {
       if (!graph[target]) {
         graph[target] = {
@@ -293,9 +293,7 @@ function main() {
   }
 
   const generatedAt = new Date().toISOString()
-  const terms = [
-    ...new Map(catalog.map((row) => [row.term_code, row])).values(),
-  ]
+  const terms = [...new Map(catalog.map((row) => [row.term_code, row])).values()]
     .map((row) => ({
       term_code: row.term_code,
       term_name: row.term_name,

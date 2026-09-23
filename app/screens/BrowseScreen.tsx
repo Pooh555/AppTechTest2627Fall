@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react"
 import { Pressable, TextInput, View, ViewStyle } from "react-native"
+import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
-import { useSQLiteContext } from "expo-sqlite"
 
 import { CourseRow } from "@/components/CourseRow"
 import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { searchCourses, getDepartments, getTerms } from "@/services/courses/CourseRepository"
 import type { CourseSummary, DepartmentInfo, TermInfo } from "@/services/courses/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 
 export function BrowseScreen() {
@@ -34,7 +34,9 @@ export function BrowseScreen() {
         setTerms(nextTerms)
         setTerm(nextTerms[0]?.termCode ?? null)
       })
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to load course data"))
+      .catch((reason: unknown) =>
+        setError(reason instanceof Error ? reason.message : "Unable to load course data"),
+      )
   }, [db])
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function BrowseScreen() {
       setError(null)
       searchCourses(db, { query, departmentCode: department, termCode: term })
         .then((result) => {
-          if (!cancelled) setCourses(result)
+        if (!cancelled) setCourses(result.rows)
         })
         .catch((reason: unknown) => {
           if (!cancelled) setError(reason instanceof Error ? reason.message : "Search failed")
@@ -73,7 +75,11 @@ export function BrowseScreen() {
           autoCorrect={false}
         />
         <View style={themed($filters)}>
-          <Pressable testID="department-filter" onPress={() => setSheetVisible(true)} style={themed($filter)}>
+          <Pressable
+            testID="department-filter"
+            onPress={() => setSheetVisible(true)}
+            style={themed($filter)}
+          >
             <Text text={department ?? "All departments"} size="xs" />
           </Pressable>
           {terms.map((item) => (
@@ -96,7 +102,9 @@ export function BrowseScreen() {
         renderItem={({ item }) => (
           <CourseRow
             course={item}
-            onPress={(code) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined })}
+            onPress={(code) =>
+              navigation.navigate("CourseDetail", { code, termCode: term ?? undefined })
+            }
           />
         )}
         ListEmptyComponent={
@@ -128,7 +136,9 @@ const $search = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) =
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
 })
-const $placeholder = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({ color: colors.textDim })
+const $placeholder = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
+  color: colors.textDim,
+})
 const $filters = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   flexDirection: "row" as const,
   alignItems: "center" as const,
@@ -148,7 +158,9 @@ const $chip = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => 
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
 })
-const $selected = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({ backgroundColor: colors.tint })
+const $selected = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
+  backgroundColor: colors.tint,
+})
 const $empty = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   color: colors.textDim,
   padding: spacing.lg,

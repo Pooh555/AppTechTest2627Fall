@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite"
 
-import type { PrereqGraph } from "@/lib/prereqWalk"
 import { parsePrereq, type PrereqNode } from "@/lib/parsePrereq"
+import type { PrereqGraph } from "@/lib/prereqWalk"
 import { seatStatusForSections } from "@/lib/seatStatus"
 
 import type {
@@ -13,14 +13,20 @@ import type {
   DepartmentInfo,
   OfferedTerm,
   SearchCoursesParams,
+  SearchCoursesResult,
   TermInfo,
 } from "./types"
-
-import prereqGraphJson from "../../../assets/data/prereq-graph.json"
 import datasetMetaJson from "../../../assets/data/dataset-meta.json"
-
-const prereqGraph = prereqGraphJson as PrereqGraph
+let prereqGraph: PrereqGraph | undefined
 const datasetMeta = datasetMetaJson as DatasetMeta
+
+function loadPrereqGraph(): PrereqGraph {
+  if (!prereqGraph) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    prereqGraph = require("../../../assets/data/prereq-graph.json") as PrereqGraph
+  }
+  return prereqGraph
+}
 
 type CourseRow = {
   code: string
@@ -66,9 +72,9 @@ type SectionRow = {
 
 type SeatRow = {
   course_code: string
-  capacity: number
-  enroll: number
-  open: number
+  type: string
+  has_room: number
+  scarce: number
 }
 
 function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
@@ -83,30 +89,30 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
 
 function toFtsQuery(raw: string): string {
   const tokens = raw
-    .replace(/[^\w.+-]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .split(/\s+/)
     .map((token) => token.trim())
     .filter((token) => token.length > 0)
-  return tokens.map((token) => `${token}*`).join(" AND ")
+  return tokens.map((token) => `"${token.replace(/"/g, '""')}"*`).join(" AND ")
 }
 
 function likeQuery(raw: string): { sql: string; args: string[] } {
-  const value = `%${raw.trim()}%`
+  const value = `%${raw.trim().replace(/[\\%_]/g, "\\$&")}%`
   return {
-    sql: "(c.code LIKE ? OR c.title LIKE ? OR c.description LIKE ?)",
+    sql: "(c.code LIKE ? ESCAPE '\\' OR c.title LIKE ? ESCAPE '\\' OR c.description LIKE ? ESCAPE '\\')",
     args: [value, value, value],
   }
 }
 
 function graphTree(code: string, fallback: string | null | undefined): PrereqNode {
-  const entry = prereqGraph[code]
+  const entry = loadPrereqGraph()[code]
   if (entry?.tree) return entry.tree as PrereqNode
   return parsePrereq(fallback)
 }
 
 function toSummary(
   row: CourseRow,
-  seatRows: Array<{ capacity: number; enroll: number; open: boolean }>,
+  seatRows: Array<{ type: string; hasRoom: boolean; scarce: boolean }>,
 ): CourseSummary {
   return {
     code: row.code,
@@ -117,7 +123,14 @@ function toSummary(
     maxCredits: row.max_credits,
     departmentCode: row.department_code,
     departmentNickname: row.department_nickname,
-    seatStatus: seatStatusForSections(seatRows),
+    seatStatus: seatStatusForSections(
+      seatRows.map((row) => ({
+        type: row.type,
+        capacity: row.hasRoom ? 1 : row.scarce ? 10 : 1,
+        enroll: row.hasRoom ? 0 : row.scarce ? 9 : 1,
+        open: row.hasRoom,
+      })),
+    ),
   }
 }
 
@@ -125,24 +138,23 @@ async function seatsByCourse(
   db: SQLiteDatabase,
   termCode: string | null | undefined,
   codes: string[],
-): Promise<Map<string, Array<{ capacity: number; enroll: number; open: boolean }>>> {
-  const map = new Map<string, Array<{ capacity: number; enroll: number; open: boolean }>>()
+): Promise<Map<string, Array<{ type: string; hasRoom: boolean; scarce: boolean }>>> {
+  const map = new Map<string, Array<{ type: string; hasRoom: boolean; scarce: boolean }>>()
   if (!termCode || codes.length === 0) return map
 
   const placeholders = codes.map(() => "?").join(",")
   const rows = await db.getAllAsync<SeatRow>(
-    `SELECT course_code, capacity, enroll, open
+    `SELECT course_code, type,
+       MAX(capacity > 0 AND enroll < capacity AND open = 1) AS has_room,
+       MAX(capacity > 0 AND enroll * 1.0 / capacity >= 0.9) AS scarce
      FROM sections
-     WHERE term_code = ? AND course_code IN (${placeholders})`,
+     WHERE term_code = ? AND course_code IN (${placeholders})
+     GROUP BY course_code, type`,
     [termCode, ...codes],
   )
   for (const row of rows) {
     const list = map.get(row.course_code) ?? []
-    list.push({
-      capacity: row.capacity,
-      enroll: row.enroll,
-      open: row.open === 1,
-    })
+    list.push({ type: row.type, hasRoom: row.has_room === 1, scarce: row.scarce === 1 })
     map.set(row.course_code, list)
   }
   return map
@@ -151,16 +163,16 @@ async function seatsByCourse(
 export async function searchCourses(
   db: SQLiteDatabase,
   params: SearchCoursesParams = {},
-): Promise<CourseSummary[]> {
+): Promise<SearchCoursesResult> {
+  if (params.codes && params.codes.length === 0) return { rows: [], hasMore: false }
   const query = params.query?.trim() ?? ""
   const clauses: string[] = []
   const args: Array<string | number> = []
+  const limit = params.limit ?? 60
+  const offset = params.offset ?? 0
 
-  let sql = `SELECT DISTINCT c.code, c.prefix, c.number, c.title, c.description,
-      c.min_credits, c.max_credits, c.vector_display, c.department_code,
-      c.department_nickname, c.canonical_term_code, c.canonical_id,
-      c.prerequisite, c.corequisite, c.exclusion, c.background, c.cilos
-    FROM courses c`
+  let sql = `SELECT c.code, c.prefix, c.number, c.title, c.min_credits, c.max_credits,
+      c.department_code, c.department_nickname FROM courses c`
 
   if (query.length > 0 && toFtsQuery(query)) {
     sql += ` JOIN courses_fts fts ON fts.rowid = c.rowid`
@@ -169,8 +181,7 @@ export async function searchCourses(
   }
 
   if (params.termCode) {
-    sql += ` JOIN course_terms t ON t.code = c.code`
-    clauses.push("t.term_code = ?")
+    clauses.push("EXISTS (SELECT 1 FROM course_terms t WHERE t.code = c.code AND t.term_code = ?)")
     args.push(params.termCode)
   }
 
@@ -187,7 +198,8 @@ export async function searchCourses(
   if (clauses.length > 0) {
     sql += ` WHERE ${clauses.join(" AND ")}`
   }
-  sql += " ORDER BY c.prefix, c.number"
+  sql += " ORDER BY c.prefix, c.number LIMIT ? OFFSET ?"
+  args.push(limit, offset)
 
   let rows: CourseRow[]
   try {
@@ -196,15 +208,17 @@ export async function searchCourses(
     if (query.length === 0) throw error
     const fallback = likeQuery(query)
     const fallbackClauses = clauses.filter((clause) => clause !== "fts MATCH ?")
-    const fallbackArgs = args.filter((_value, index) => index !== 0)
+    const fallbackArgs = args.filter((_value, index) => index !== 0 && index < args.length - 2)
     const where = [...fallbackClauses, fallback.sql]
-    const fallbackSql = `SELECT DISTINCT c.code, c.prefix, c.number, c.title, c.description,
-      c.min_credits, c.max_credits, c.vector_display, c.department_code,
-      c.department_nickname, c.canonical_term_code, c.canonical_id,
-      c.prerequisite, c.corequisite, c.exclusion, c.background, c.cilos
-      FROM courses c${params.termCode ? " JOIN course_terms t ON t.code = c.code" : ""}
-      WHERE ${where.join(" AND ")} ORDER BY c.prefix, c.number`
-    rows = await db.getAllAsync<CourseRow>(fallbackSql, [...fallbackArgs, ...fallback.args])
+    const fallbackSql = `SELECT c.code, c.prefix, c.number, c.title, c.min_credits,
+      c.max_credits, c.department_code, c.department_nickname FROM courses c
+      WHERE ${where.join(" AND ")} ORDER BY c.prefix, c.number LIMIT ? OFFSET ?`
+    rows = await db.getAllAsync<CourseRow>(fallbackSql, [
+      ...fallbackArgs,
+      ...fallback.args,
+      limit,
+      offset,
+    ])
   }
   const seats = await seatsByCourse(
     db,
@@ -216,7 +230,7 @@ export async function searchCourses(
     const order = new Map(params.codes.map((code, index) => [code, index]))
     summaries.sort((a, b) => (order.get(a.code) ?? 0) - (order.get(b.code) ?? 0))
   }
-  return summaries
+  return { rows: summaries, hasMore: rows.length === limit }
 }
 
 export async function getCourseDetail(
@@ -317,11 +331,43 @@ export function getPrereqTree(code: string): PrereqNode {
 }
 
 export function getUnlocks(code: string): string[] {
-  return prereqGraph[code]?.unlockedBy ?? []
+  return loadPrereqGraph()[code]?.unlockedBy ?? []
 }
 
 export function getPrereqGraph(): PrereqGraph {
-  return prereqGraph
+  return loadPrereqGraph()
+}
+
+export async function getLatestTermCode(db: SQLiteDatabase): Promise<string | null> {
+  const row = await db.getFirstAsync<{ termCode: string }>(
+    "SELECT term_code AS termCode FROM course_terms ORDER BY term_num DESC LIMIT 1",
+  )
+  return row?.termCode ?? null
+}
+
+export async function getCourseTitles(
+  db: SQLiteDatabase,
+  codes: string[],
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {}
+  for (let offset = 0; offset < codes.length; offset += 100) {
+    const batch = codes.slice(offset, offset + 100)
+    if (batch.length === 0) continue
+    const rows = await db.getAllAsync<{ code: string; title: string }>(
+      `SELECT code, title FROM courses WHERE code IN (${batch.map(() => "?").join(",")})`,
+      batch,
+    )
+    for (const row of rows) result[row.code] = row.title
+  }
+  return result
+}
+
+export async function getCourseExists(db: SQLiteDatabase, code: string): Promise<boolean> {
+  const row = await db.getFirstAsync<{ exists: number }>(
+    "SELECT EXISTS(SELECT 1 FROM courses WHERE code = ?) AS exists",
+    [code],
+  )
+  return row?.exists === 1
 }
 
 export async function getDepartments(db: SQLiteDatabase): Promise<DepartmentInfo[]> {
