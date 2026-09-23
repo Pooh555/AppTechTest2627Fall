@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import type { CatalogRow, CanonicalCourse, ScheduleRow } from "./pipeline"
-import { dedupeCourses, joinSections } from "./pipeline"
+import { dedupeCourses, joinSections, precomputeSeatStatus } from "./pipeline"
 import { collectCourseCodes, flattenPrereq, parsePrereq } from "../app/lib/parsePrereq"
 
 const ROOT = join(__dirname, "..")
@@ -40,6 +40,7 @@ function createSchema(db: Database.Database) {
     PRAGMA synchronous = OFF;
 
     DROP TABLE IF EXISTS sections;
+    DROP TABLE IF EXISTS course_seat_status;
     DROP TABLE IF EXISTS course_terms;
     DROP TABLE IF EXISTS courses_fts;
     DROP TABLE IF EXISTS courses;
@@ -61,6 +62,7 @@ function createSchema(db: Database.Database) {
       canonical_term_code TEXT,
       canonical_term_name TEXT,
       canonical_id TEXT,
+      code_compact TEXT NOT NULL,
       prerequisite TEXT,
       corequisite TEXT,
       exclusion TEXT,
@@ -89,7 +91,10 @@ function createSchema(db: Database.Database) {
       code,
       title,
       description,
-      tokenize = 'unicode61'
+      content='courses',
+      content_rowid='rowid',
+      tokenize='unicode61',
+      prefix='2 3'
     );
 
     CREATE TABLE sections (
@@ -117,6 +122,17 @@ function createSchema(db: Database.Database) {
     CREATE INDEX idx_sections_course_term ON sections(course_id, term_code);
     CREATE INDEX idx_sections_code_term ON sections(course_code, term_code);
 
+    CREATE TABLE course_seat_status (
+      course_code TEXT NOT NULL,
+      term_code TEXT NOT NULL,
+      seat_status TEXT NOT NULL,
+      open_seats INTEGER NOT NULL,
+      total_capacity INTEGER NOT NULL,
+      PRIMARY KEY (course_code, term_code)
+    );
+    CREATE INDEX idx_course_seat_status_term_code
+      ON course_seat_status(term_code, course_code);
+
     CREATE TABLE meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -129,12 +145,12 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
     INSERT INTO courses (
       code, prefix, number, title, description, min_credits, max_credits,
       vector_display, department_code, department_nickname, school_code, career_type,
-      canonical_term_code, canonical_term_name, canonical_id, prerequisite, corequisite,
+      canonical_term_code, canonical_term_name, canonical_id, code_compact, prerequisite, corequisite,
       exclusion, background, cilos, attributes
     ) VALUES (
       @code, @prefix, @number, @title, @description, @min_credits, @max_credits,
       @vector_display, @department_code, @department_nickname, @school_code, @career_type,
-      @canonical_term_code, @canonical_term_name, @canonical_id, @prerequisite, @corequisite,
+      @canonical_term_code, @canonical_term_name, @canonical_id, @code_compact, @prerequisite, @corequisite,
       @exclusion, @background, @cilos, @attributes
     )
   `)
@@ -142,13 +158,6 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
     INSERT INTO course_terms (code, term_code, term_name, term_num, course_id)
     VALUES (@code, @term_code, @term_name, @term_num, @course_id)
   `)
-  const insertFts = db.prepare(`
-    INSERT INTO courses_fts (rowid, code, title, description)
-    VALUES (@rowid, @code, @title, @description)
-  `)
-
-  const selectRowid = db.prepare("SELECT rowid AS id FROM courses WHERE code = ?")
-
   const tx = db.transaction(() => {
     for (const course of courses) {
       insertCourse.run({
@@ -167,19 +176,13 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
         canonical_term_code: course.term_code,
         canonical_term_name: course.term_name,
         canonical_id: course.id,
+        code_compact: course.code.replace(/\s+/g, ""),
         prerequisite: course.prerequisite ?? "",
         corequisite: course.corequisite ?? "",
         exclusion: course.exclusion ?? "",
         background: course.background ?? "",
         cilos: JSON.stringify(course.cilos ?? []),
         attributes: JSON.stringify(course.attributes ?? []),
-      })
-      const rowid = selectRowid.get(course.code) as { id: number }
-      insertFts.run({
-        rowid: rowid.id,
-        code: course.code,
-        title: course.title,
-        description: course.description ?? "",
       })
       for (const term of course.offeredTerms) {
         insertTerm.run({
@@ -191,6 +194,22 @@ function insertCourses(db: Database.Database, courses: CanonicalCourse[]) {
         })
       }
     }
+  })
+  tx()
+  db.exec("INSERT INTO courses_fts(courses_fts) VALUES ('rebuild')")
+}
+
+function insertSeatAggregates(
+  db: Database.Database,
+  aggregates: ReturnType<typeof precomputeSeatStatus>,
+) {
+  const insert = db.prepare(`
+    INSERT INTO course_seat_status
+      (course_code, term_code, seat_status, open_seats, total_capacity)
+    VALUES (@course_code, @term_code, @seat_status, @open_seats, @total_capacity)
+  `)
+  const tx = db.transaction(() => {
+    for (const aggregate of aggregates) insert.run(aggregate)
   })
   tx()
 }
@@ -312,6 +331,8 @@ function main() {
   createSchema(db)
   insertCourses(db, courses)
   insertSections(db, sections, idToCode)
+  insertSeatAggregates(db, precomputeSeatStatus(sections, idToCode))
+  db.exec("VACUUM")
   db.prepare("INSERT INTO meta (key, value) VALUES (?, ?), (?, ?), (?, ?)").run(
     "generated_at",
     generatedAt,

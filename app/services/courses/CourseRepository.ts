@@ -2,7 +2,6 @@ import type { SQLiteDatabase } from "expo-sqlite"
 
 import { parsePrereq, type PrereqNode } from "@/lib/parsePrereq"
 import type { PrereqGraph } from "@/lib/prereqWalk"
-import { seatStatusForSections } from "@/lib/seatStatus"
 
 import type {
   Cilo,
@@ -73,9 +72,9 @@ type SectionRow = {
 
 type SeatRow = {
   course_code: string
-  type: string
-  has_room: number
-  scarce: number
+  seat_status: CourseSummary["seatStatus"]
+  open_seats: number
+  total_capacity: number
 }
 
 function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
@@ -115,10 +114,7 @@ function graphTree(code: string, fallback: string | null | undefined): PrereqNod
   return parsePrereq(fallback)
 }
 
-function toSummary(
-  row: CourseRow,
-  seatRows: Array<{ type: string; hasRoom: boolean; scarce: boolean }>,
-): CourseSummary {
+function toSummary(row: CourseRow, seatRow?: SeatRow): CourseSummary {
   return {
     code: row.code,
     prefix: row.prefix,
@@ -128,14 +124,9 @@ function toSummary(
     maxCredits: row.max_credits,
     departmentCode: row.department_code,
     departmentNickname: row.department_nickname,
-    seatStatus: seatStatusForSections(
-      seatRows.map((row) => ({
-        type: row.type,
-        capacity: row.hasRoom ? 1 : row.scarce ? 10 : 1,
-        enroll: row.hasRoom ? 0 : row.scarce ? 9 : 1,
-        open: row.hasRoom,
-      })),
-    ),
+    seatStatus: seatRow?.seat_status ?? "unknown",
+    openSeats: seatRow?.open_seats ?? 0,
+    totalCapacity: seatRow?.total_capacity ?? 0,
   }
 }
 
@@ -143,24 +134,19 @@ async function seatsByCourse(
   db: SQLiteDatabase,
   termCode: string | null | undefined,
   codes: string[],
-): Promise<Map<string, Array<{ type: string; hasRoom: boolean; scarce: boolean }>>> {
-  const map = new Map<string, Array<{ type: string; hasRoom: boolean; scarce: boolean }>>()
+): Promise<Map<string, SeatRow>> {
+  const map = new Map<string, SeatRow>()
   if (!termCode || codes.length === 0) return map
 
   const placeholders = codes.map(() => "?").join(",")
   const rows = await db.getAllAsync<SeatRow>(
-    `SELECT course_code, type,
-       MAX(capacity > 0 AND enroll < capacity AND open = 1) AS has_room,
-       MAX(capacity > 0 AND enroll * 1.0 / capacity >= 0.9) AS scarce
-     FROM sections
-     WHERE term_code = ? AND course_code IN (${placeholders})
-     GROUP BY course_code, type`,
+    `SELECT course_code, seat_status, open_seats, total_capacity
+     FROM course_seat_status
+     WHERE term_code = ? AND course_code IN (${placeholders})`,
     [termCode, ...codes],
   )
   for (const row of rows) {
-    const list = map.get(row.course_code) ?? []
-    list.push({ type: row.type, hasRoom: row.has_room === 1, scarce: row.scarce === 1 })
-    map.set(row.course_code, list)
+    map.set(row.course_code, row)
   }
   return map
 }
@@ -237,7 +223,7 @@ export async function searchCourses(
     params.termCode,
     rows.map((row) => row.code),
   )
-  const summaries = rows.map((row) => toSummary(row, seats.get(row.code) ?? []))
+  const summaries = rows.map((row) => toSummary(row, seats.get(row.code)))
   if (params.codes && params.codes.length > 0) {
     const order = new Map(params.codes.map((code, index) => [code, index]))
     summaries.sort((a, b) => (order.get(a.code) ?? 0) - (order.get(b.code) ?? 0))
@@ -278,7 +264,7 @@ export async function getCourseDetail(
 
   const seatTerm = termCode ?? row.canonical_term_code
   const seats = await seatsByCourse(db, seatTerm, [code])
-  const summary = toSummary(row, seats.get(code) ?? [])
+  const summary = toSummary(row, seats.get(code))
   const cilos = parseJsonArray<Cilo>(row.cilos, []).map((item) => ({
     description: typeof item === "string" ? item : (item.description ?? ""),
   }))

@@ -1,4 +1,4 @@
-export type SeatStatus = "open" | "near-full" | "full" | "unknown"
+export type SeatStatus = "open" | "near-full" | "full" | "n/a" | "unknown"
 
 type SectionSeat = {
   capacity: number
@@ -7,7 +7,13 @@ type SectionSeat = {
   type?: string
 }
 
-const rank: Record<SeatStatus, number> = { "unknown": 0, "open": 1, "near-full": 2, "full": 3 }
+const rank: Record<SeatStatus, number> = {
+  "unknown": 0,
+  "n/a": 0,
+  "open": 1,
+  "near-full": 2,
+  "full": 3,
+}
 
 function statusForType(sections: SectionSeat[]): SeatStatus {
   const usable = sections.filter((section) => section.capacity > 0)

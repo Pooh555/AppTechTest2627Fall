@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T15:40:19.912Z",
+  "generatedAt": "2026-09-23T15:41:36.804Z",
   "catalogPath": "courses.json",
   "schedulePath": "assets/data/schedule.json",
   "scheduleSource": "ust-archive/schedule",
@@ -28,6 +28,6 @@
     }
   ],
   "courseCount": 4030,
-  "sectionCount": 79946,
+  "sectionCount": 79733,
   "catalogRowCount": 15178
 }

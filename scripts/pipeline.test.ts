@@ -4,6 +4,7 @@ import {
   courseCodeOf,
   dedupeCourses,
   joinSections,
+  precomputeSeatStatus,
   type CatalogRow,
   type ScheduleRow,
 } from "./pipeline"
@@ -128,6 +129,47 @@ describe("seatStatusForSections", () => {
     expect(seatStatusForSections([{ capacity: 100, enroll: 100, open: true }])).toBe("full")
     expect(seatStatusForSections([{ capacity: 100, enroll: 10, open: false }])).toBe("full")
     expect(seatStatusForSections([])).toBe("unknown")
+  })
+
+  describe("precomputeSeatStatus", () => {
+    it("aggregates open seats and never marks non-capacity sections full", () => {
+      const result = precomputeSeatStatus(
+        [
+          {
+            ...TERM_A,
+            course_id: "001",
+            section: "L1",
+            number: 1,
+            type: "LEC",
+            capacity: 100,
+            enroll: 40,
+            wait: 0,
+            open: true,
+          },
+          {
+            ...TERM_A,
+            course_id: "001",
+            section: "I1",
+            number: 2,
+            type: "IND",
+            capacity: 0,
+            enroll: 0,
+            wait: 0,
+            open: false,
+          },
+        ],
+        new Map([["001", "COMP 1021"]]),
+      )
+      expect(result).toEqual([
+        {
+          course_code: "COMP 1021",
+          term_code: "2610",
+          seat_status: "open",
+          open_seats: 60,
+          total_capacity: 100,
+        },
+      ])
+    })
   })
 })
 

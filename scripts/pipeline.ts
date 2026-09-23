@@ -108,12 +108,53 @@ export function dedupeCourses(rows: CatalogRow[]): CanonicalCourse[] {
 }
 
 export function joinSections(courses: CanonicalCourse[], sections: ScheduleRow[]): ScheduleRow[] {
-  const ids = new Set<string>()
+  const keys = new Set<string>()
   for (const course of courses) {
-    for (const term of course.offeredTerms) ids.add(term.course_id)
-    ids.add(course.id)
+    for (const term of course.offeredTerms) keys.add(`${term.course_id}\0${term.term_code}`)
+    keys.add(`${course.id}\0${course.term_code}`)
   }
-  return sections.filter((section) => ids.has(section.course_id))
+  return sections.filter((section) => keys.has(`${section.course_id}\0${section.term_code}`))
+}
+
+export type SeatAggregate = {
+  course_code: string
+  term_code: string
+  seat_status: "open" | "near-full" | "full" | "n/a"
+  open_seats: number
+  total_capacity: number
+}
+
+export function precomputeSeatStatus(
+  sections: ScheduleRow[],
+  idToCode: Map<string, string>,
+): SeatAggregate[] {
+  const grouped = new Map<string, ScheduleRow[]>()
+  for (const section of sections) {
+    const code = idToCode.get(section.course_id)
+    if (!code) continue
+    const key = `${code}\0${section.term_code}`
+    grouped.set(key, [...(grouped.get(key) ?? []), section])
+  }
+  return [...grouped.entries()].map(([key, rows]) => {
+    const [course_code, term_code] = key.split("\0")
+    const measurable = rows.filter((row) => row.type !== "IND" && row.capacity > 0)
+    const open_seats = measurable.reduce(
+      (total, row) => total + Math.max(row.capacity - row.enroll, 0),
+      0,
+    )
+    const total_capacity = measurable.reduce((total, row) => total + row.capacity, 0)
+    const has_room = measurable.some((row) => row.open && row.enroll < row.capacity)
+    const near_full = measurable.some((row) => row.enroll / row.capacity >= 0.9)
+    const seat_status =
+      measurable.length === 0
+        ? "n/a"
+        : has_room && open_seats > 0 && measurable.some((row) => row.enroll / row.capacity < 0.9)
+          ? "open"
+          : near_full
+            ? "near-full"
+            : "full"
+    return { course_code, term_code, seat_status, open_seats, total_capacity }
+  })
 }
 
 export type { SeatStatus } from "../app/lib/seatStatus"

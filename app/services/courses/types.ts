@@ -26,6 +26,8 @@ export type CourseSummary = {
   departmentCode: string
   departmentNickname: string
   seatStatus: SeatStatus
+  openSeats: number
+  totalCapacity: number
 }
 
 export type Cilo = {

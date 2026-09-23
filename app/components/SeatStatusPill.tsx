@@ -11,6 +11,7 @@ const LABELS: Record<SeatStatus, string> = {
   "near-full": "Near full",
   "full": "Full",
   "unknown": "No seats data",
+  "n/a": "N/A",
 }
 
 export function SeatStatusPill({ status }: { status: SeatStatus }) {
@@ -34,8 +35,9 @@ const $label: ThemedStyle<TextStyle> = () => ({
 })
 
 const $tone: Record<SeatStatus, ThemedStyle<ViewStyle>> = {
-  "open": () => ({ backgroundColor: "#2F9E44" }),
-  "near-full": () => ({ backgroundColor: "#F08C00" }),
-  "full": () => ({ backgroundColor: "#C92A2A" }),
+  "open": ({ colors }) => ({ backgroundColor: colors.successBackground }),
+  "near-full": ({ colors }) => ({ backgroundColor: colors.warningBackground }),
+  "full": ({ colors }) => ({ backgroundColor: colors.dangerBackground }),
+  "n/a": ({ colors }) => ({ backgroundColor: colors.surfaceMuted }),
   "unknown": ({ colors }) => ({ backgroundColor: colors.palette.neutral500 }),
 }
