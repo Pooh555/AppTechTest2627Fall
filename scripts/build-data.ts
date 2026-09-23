@@ -72,6 +72,7 @@ function createSchema(db: Database.Database) {
     );
     CREATE INDEX idx_courses_prefix ON courses(prefix);
     CREATE INDEX idx_courses_number ON courses(number);
+    CREATE INDEX idx_courses_code_compact ON courses(code_compact);
     CREATE INDEX idx_courses_department ON courses(department_code);
     CREATE INDEX idx_courses_term ON courses(canonical_term_code);
 

@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite"
 
 import { parsePrereq, type PrereqNode } from "@/lib/parsePrereq"
 import type { PrereqGraph } from "@/lib/prereqWalk"
+import { buildSearchPlan, classifyQuery, normalizeQuery } from "@/lib/search/searchIntent"
 
 import type {
   Cilo,
@@ -88,35 +89,6 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
   }
 }
 
-function toFtsQuery(raw: string): string {
-  const normalized = raw.replace(/^([a-z]{2,4})(\d{3,4}[a-z]?)$/i, "$1 $2")
-  const tokens = normalized
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 0)
-  return tokens
-    .map((token) => {
-      const escaped = `"${token.replace(/"/g, '""')}"`
-      return /^\d/.test(token) || /^[a-z]{2,4}\s\d{3,4}[a-z]?$/i.test(token)
-        ? `code:${escaped}*`
-        : `${escaped}*`
-    })
-    .join(" AND ")
-}
-
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, "\\$&")
-}
-
-function likeQuery(raw: string): { sql: string; args: string[] } {
-  const value = `%${escapeLike(raw.trim())}%`
-  return {
-    sql: "(c.code LIKE ? ESCAPE '\\' OR c.title LIKE ? ESCAPE '\\' OR c.description LIKE ? ESCAPE '\\')",
-    args: [value, value, value],
-  }
-}
-
 function graphTree(code: string, fallback: string | null | undefined): PrereqNode {
   const entry = loadPrereqGraph()[code]
   if (entry?.tree) return entry.tree as PrereqNode
@@ -165,69 +137,23 @@ export async function searchCourses(
   params: SearchCoursesParams = {},
 ): Promise<SearchCoursesResult> {
   if (params.codes && params.codes.length === 0) return { rows: [], hasMore: false }
-  const query = params.query?.trim() ?? ""
-  const clauses: string[] = []
-  const args: Array<string | number> = []
   const limit = params.limit ?? 60
   const offset = params.offset ?? 0
-
-  let sql = `SELECT c.code, c.prefix, c.number, c.title, c.min_credits, c.max_credits,
-      c.department_code, c.department_nickname FROM courses c`
-
-  if (query.length > 0 && toFtsQuery(query)) {
-    sql += ` JOIN courses_fts fts ON fts.rowid = c.rowid`
-    clauses.push("fts MATCH ?")
-    args.push(toFtsQuery(query))
-  }
-
-  if (params.termCode) {
-    clauses.push("EXISTS (SELECT 1 FROM course_terms t WHERE t.code = c.code AND t.term_code = ?)")
-    args.push(params.termCode)
-  }
-
-  if (params.departmentCode) {
-    clauses.push("c.department_code = ?")
-    args.push(params.departmentCode)
-  }
-
-  if (params.codes && params.codes.length > 0) {
-    clauses.push(`c.code IN (${params.codes.map(() => "?").join(",")})`)
-    args.push(...params.codes)
-  }
-
-  if (clauses.length > 0) {
-    sql += ` WHERE ${clauses.join(" AND ")}`
-  }
-  const filterArgs = [...args]
-  sql += query
-    ? " ORDER BY CASE WHEN UPPER(c.code) = UPPER(?) OR UPPER(c.code_compact) = UPPER(?) THEN 0 WHEN UPPER(c.code) LIKE UPPER(?) ESCAPE '\\' OR UPPER(c.code_compact) LIKE UPPER(?) ESCAPE '\\' THEN 1 WHEN c.title LIKE ? ESCAPE '\\' THEN 2 ELSE 3 END, bm25(fts, 10, 5, 1) LIMIT ? OFFSET ?"
-    : " ORDER BY c.prefix, c.number LIMIT ? OFFSET ?"
-  if (query) {
-    const escapedQuery = escapeLike(query)
-    const compact = query.replace(/\s+/g, "")
-    args.push(query, compact, `${escapedQuery}%`, `${escapeLike(compact)}%`, `%${escapedQuery}%`)
-  }
-  args.push(limit + 1, offset)
-
-  let rows: CourseRow[]
-  try {
-    rows = await db.getAllAsync<CourseRow>(sql, args)
-  } catch (error) {
-    if (query.length === 0) throw error
-    const fallback = likeQuery(query)
-    const fallbackClauses = clauses.filter((clause) => clause !== "fts MATCH ?")
-    const fallbackArgs = filterArgs.filter((_value, index) => index !== 0)
-    const where = [...fallbackClauses, fallback.sql]
-    const fallbackSql = `SELECT c.code, c.prefix, c.number, c.title, c.min_credits,
-      c.max_credits, c.department_code, c.department_nickname FROM courses c
-      WHERE ${where.join(" AND ")} ORDER BY c.prefix, c.number LIMIT ? OFFSET ?`
-    rows = await db.getAllAsync<CourseRow>(fallbackSql, [
-      ...fallbackArgs,
-      ...fallback.args,
-      limit + 1,
-      offset,
-    ])
-  }
+  const prefixRows = await db.getAllAsync<{ prefix: string }>(
+    "SELECT DISTINCT prefix FROM courses ORDER BY prefix",
+  )
+  const intent = classifyQuery(
+    normalizeQuery(params.query ?? ""),
+    new Set(prefixRows.map((row) => row.prefix)),
+  )
+  const plan = buildSearchPlan(intent, {
+    termCode: params.termCode,
+    departmentCode: params.departmentCode,
+    codes: params.codes,
+    limit,
+    offset,
+  })
+  const rows = await db.getAllAsync<CourseRow>(plan.sql, plan.args)
   const seats = await seatsByCourse(
     db,
     params.termCode,

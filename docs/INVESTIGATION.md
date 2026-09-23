@@ -14,6 +14,22 @@
 - **Decision:** add pure `lib/search` intent classification and SQL planning. Code-prefix/partial intents use indexed course columns; text intents use deterministic FTS tiers. Preserve term, department, code-list, and limit-plus-one filters.
 - **Evidence to capture in tests:** query counts, distinct prefixes, and top codes for `c`, `co`, `comp`, `comp `, `comp4`, `comp 42`, `comp4211`, `data`, and `machine learning` against the bundled database.
 
+### Search evidence
+
+| Query              | Before count / prefixes | Before top code | After count / prefixes | After top code |
+| ------------------ | ----------------------: | --------------- | ---------------------: | -------------- |
+| `c`                |              3913 / 129 | CHEM 5210       |             3913 / 129 | CHEM 5210      |
+| `co`               |              3705 / 129 | COMP 6912       |             3705 / 129 | COMP 6912      |
+| `comp`             |              1355 / 121 | COMP 6912       |                109 / 1 | COMP 1001      |
+| `comp `            |              1355 / 121 | COMP 6912       |                109 / 1 | COMP 1001      |
+| `comp4`            |                   1 / 1 | COMP 4633       |                 36 / 1 | COMP 4021      |
+| `comp 42`          |                 30 / 16 | COMP 4221       |                  4 / 1 | COMP 4211      |
+| `comp4211`         |                   0 / 0 | —               |                  1 / 1 | COMP 4211      |
+| `data`             |                567 / 89 | DSAA 5002       |               567 / 89 | DSAA 5002      |
+| `machine learning` |                164 / 51 | MSBD 5012       |               164 / 51 | MSBD 5012      |
+
+The deliberate classification decision is that one- and two-letter inputs remain text search: they are too ambiguous to identify a real course family reliably. A complete known prefix switches to indexed code search.
+
 ## I-3 — Prerequisites and unlocks share direction-dependent logic
 
 - **Symptom:** `PrerequisiteExplorerScreen` and `LazyNode` branch on a direction flag; `prereqWalk.ts` combines flattened prerequisites and reverse unlocks; the repository exposes graph internals to UI helpers.
