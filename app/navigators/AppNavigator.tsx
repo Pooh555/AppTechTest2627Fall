@@ -7,11 +7,11 @@
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
-import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import Config from "@/config"
 import { CourseDetailScreen } from "@/screens/CourseDetailScreen"
+import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { PrerequisiteExplorerScreen } from "@/screens/PrerequisiteExplorerScreen"
 import { useAppTheme } from "@/theme/context"
-import Config from "@/config"
 
 import { MainNavigator } from "./MainNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"

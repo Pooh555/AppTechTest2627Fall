@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+// eslint-disable-next-line no-restricted-imports
 import { Pressable, TextInput, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"
@@ -26,6 +27,7 @@ export function BrowseScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sheetVisible, setSheetVisible] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
 
   useEffect(() => {
     Promise.all([getDepartments(db), getTerms(db)])
@@ -40,13 +42,17 @@ export function BrowseScreen() {
   }, [db])
 
   useEffect(() => {
+    if (terms.length === 0 || !term) return
     let cancelled = false
     const timer = setTimeout(() => {
       setLoading(true)
       setError(null)
-      searchCourses(db, { query, departmentCode: department, termCode: term })
+      searchCourses(db, { query, departmentCode: department, termCode: term, limit: 60, offset: 0 })
         .then((result) => {
-        if (!cancelled) setCourses(result.rows)
+          if (!cancelled) {
+            setCourses(result.rows)
+            setHasMore(result.hasMore)
+          }
         })
         .catch((reason: unknown) => {
           if (!cancelled) setError(reason instanceof Error ? reason.message : "Search failed")
@@ -59,7 +65,26 @@ export function BrowseScreen() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [db, department, query, term])
+  }, [db, department, query, term, terms.length])
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || loading) return
+    searchCourses(db, {
+      query,
+      departmentCode: department,
+      termCode: term,
+      limit: 60,
+      offset: courses.length,
+    }).then((result) => {
+      setCourses((current) => [...current, ...result.rows])
+      setHasMore(result.hasMore)
+    })
+  }, [courses.length, db, department, hasMore, loading, query, term])
+
+  const onCoursePress = useCallback(
+    (code: string) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined }),
+    [navigation, term],
+  )
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]}>
@@ -99,14 +124,11 @@ export function BrowseScreen() {
         testID="course-list"
         data={courses}
         keyExtractor={(item) => item.code}
-        renderItem={({ item }) => (
-          <CourseRow
-            course={item}
-            onPress={(code) =>
-              navigation.navigate("CourseDetail", { code, termCode: term ?? undefined })
-            }
-          />
-        )}
+        renderItem={({ item }) => <CourseRow course={item} onPress={onCoursePress} />}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         ListEmptyComponent={
           <Text
             text={loading ? "Loading courses…" : "No courses match these filters."}

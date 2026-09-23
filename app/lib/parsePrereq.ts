@@ -28,8 +28,6 @@ export type FlattenedPrereq = {
 
 export const COURSE_CODE_PATTERN = /[A-Z]{2,4}\s?\d{3,4}[A-Z]?/g
 
-const COURSE_TOKEN = /^[A-Z]{2,4}\s?\d{3,4}[A-Z]?/
-
 export function normalizeCourseCode(raw: string): string {
   const match = raw.trim().match(/^([A-Z]{2,4})\s?(\d{3,4}[A-Z]?)$/i)
   if (!match) return raw.trim().toUpperCase()
@@ -113,12 +111,17 @@ function tokenize(source: string, meta: QualifierIndex): Token[] {
       const punctuation = rest.match(/^[()[\]]/)
       if (punctuation) {
         flushText()
-        tokens.push({ kind: punctuation[0] === "(" || punctuation[0] === "[" ? "lparen" : "rparen" })
+        tokens.push({
+          kind: punctuation[0] === "(" || punctuation[0] === "[" ? "lparen" : "rparen",
+        })
         offset += 1
         continue
       }
       const operator = rest.match(/^\s+(AND|OR)\b/)
-      const previous = source.slice(0, cursor + offset).trimEnd().slice(-1)
+      const previous = source
+        .slice(0, cursor + offset)
+        .trimEnd()
+        .slice(-1)
       const next = source.slice(start).trimStart()[0]
       if (
         operator &&
@@ -136,9 +139,7 @@ function tokenize(source: string, meta: QualifierIndex): Token[] {
     flushText()
     const code = normalizeCourseCode(match[0])
     const courseMeta = meta.get(code)
-    tokens.push(
-      courseMeta ? { kind: "course", code, meta: courseMeta } : { kind: "course", code },
-    )
+    tokens.push(courseMeta ? { kind: "course", code, meta: courseMeta } : { kind: "course", code })
     cursor = start + match[0].length
   }
   for (const character of source.slice(cursor)) {
@@ -233,7 +234,9 @@ function parseTokens(tokens: Token[]): PrereqNode {
   const trailing = tokens.slice(index).filter((token) => token.kind !== "rparen")
   if (trailing.length === 0) return tree
   const text = trailing
-    .map((token) => (token.kind === "text" ? token.value : token.kind === "course" ? token.code : ""))
+    .map((token) =>
+      token.kind === "text" ? token.value : token.kind === "course" ? token.code : "",
+    )
     .filter(Boolean)
     .join(" ")
   return text ? collapseNode("and", [tree, { type: "text", value: text }]) : tree

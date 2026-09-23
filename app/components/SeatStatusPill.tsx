@@ -7,10 +7,10 @@ import type { ThemedStyle } from "@/theme/types"
 import { Text } from "./Text"
 
 const LABELS: Record<SeatStatus, string> = {
-  open: "Open",
+  "open": "Open",
   "near-full": "Near full",
-  full: "Full",
-  unknown: "No seats data",
+  "full": "Full",
+  "unknown": "No seats data",
 }
 
 export function SeatStatusPill({ status }: { status: SeatStatus }) {
@@ -34,8 +34,8 @@ const $label: ThemedStyle<TextStyle> = () => ({
 })
 
 const $tone: Record<SeatStatus, ThemedStyle<ViewStyle>> = {
-  open: () => ({ backgroundColor: "#2F9E44" }),
+  "open": () => ({ backgroundColor: "#2F9E44" }),
   "near-full": () => ({ backgroundColor: "#F08C00" }),
-  full: () => ({ backgroundColor: "#C92A2A" }),
-  unknown: ({ colors }) => ({ backgroundColor: colors.palette.neutral500 }),
+  "full": () => ({ backgroundColor: "#C92A2A" }),
+  "unknown": ({ colors }) => ({ backgroundColor: colors.palette.neutral500 }),
 }

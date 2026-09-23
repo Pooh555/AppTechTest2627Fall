@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { Pressable, TextStyle, View, ViewStyle } from "react-native"
 
 import { formatCredits } from "@/lib/formatCredits"
@@ -13,7 +14,7 @@ export type CourseRowProps = {
   onPress: (code: string) => void
 }
 
-export function CourseRow({ course, onPress }: CourseRowProps) {
+export const CourseRow = memo(function CourseRow({ course, onPress }: CourseRowProps) {
   const { themed } = useAppTheme()
   return (
     <Pressable
@@ -36,7 +37,7 @@ export function CourseRow({ course, onPress }: CourseRowProps) {
       />
     </Pressable>
   )
-}
+})
 
 const $row: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingVertical: spacing.sm,

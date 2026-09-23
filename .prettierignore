@@ -7,3 +7,5 @@ ignite/ignite.json
 package.json
 .eslintignore
 *.ejs
+assets/data/*.json
+assets/data/*.db

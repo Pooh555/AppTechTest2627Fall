@@ -17,6 +17,7 @@ import type {
   TermInfo,
 } from "./types"
 import datasetMetaJson from "../../../assets/data/dataset-meta.json"
+
 let prereqGraph: PrereqGraph | undefined
 const datasetMeta = datasetMetaJson as DatasetMeta
 
@@ -96,8 +97,12 @@ function toFtsQuery(raw: string): string {
   return tokens.map((token) => `"${token.replace(/"/g, '""')}"*`).join(" AND ")
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&")
+}
+
 function likeQuery(raw: string): { sql: string; args: string[] } {
-  const value = `%${raw.trim().replace(/[\\%_]/g, "\\$&")}%`
+  const value = `%${escapeLike(raw.trim())}%`
   return {
     sql: "(c.code LIKE ? ESCAPE '\\' OR c.title LIKE ? ESCAPE '\\' OR c.description LIKE ? ESCAPE '\\')",
     args: [value, value, value],
@@ -198,7 +203,14 @@ export async function searchCourses(
   if (clauses.length > 0) {
     sql += ` WHERE ${clauses.join(" AND ")}`
   }
-  sql += " ORDER BY c.prefix, c.number LIMIT ? OFFSET ?"
+  const filterArgs = [...args]
+  sql += query
+    ? " ORDER BY CASE WHEN c.code = ? THEN 0 WHEN c.code LIKE ? ESCAPE '\\' THEN 1 WHEN c.title LIKE ? ESCAPE '\\' THEN 2 ELSE 3 END, bm25(fts, 10, 5, 1) LIMIT ? OFFSET ?"
+    : " ORDER BY c.prefix, c.number LIMIT ? OFFSET ?"
+  if (query) {
+    const escapedQuery = escapeLike(query)
+    args.push(query.toUpperCase(), `${escapedQuery.toUpperCase()}%`, `%${escapedQuery}%`)
+  }
   args.push(limit, offset)
 
   let rows: CourseRow[]
@@ -208,7 +220,7 @@ export async function searchCourses(
     if (query.length === 0) throw error
     const fallback = likeQuery(query)
     const fallbackClauses = clauses.filter((clause) => clause !== "fts MATCH ?")
-    const fallbackArgs = args.filter((_value, index) => index !== 0 && index < args.length - 2)
+    const fallbackArgs = filterArgs.filter((_value, index) => index !== 0)
     const where = [...fallbackClauses, fallback.sql]
     const fallbackSql = `SELECT c.code, c.prefix, c.number, c.title, c.min_credits,
       c.max_credits, c.department_code, c.department_nickname FROM courses c

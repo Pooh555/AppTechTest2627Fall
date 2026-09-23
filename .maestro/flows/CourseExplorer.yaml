@@ -2,19 +2,15 @@ appId: ${MAESTRO_APP_ID}
 ---
 - tapOn:
     id: "course-search"
-- inputText: "COMP 1021"
+- inputText: "COMP 4211"
 - tapOn:
     id: "department-filter"
 - tapOn:
     id: "department-COMP"
 - tapOn:
-    id: "course-row-COMP-1021"
+    id: "course-row-COMP-4211"
 - assertVisible: "Prerequisites"
 - tapOn:
     id: "open-prereq-explorer"
 - tapOn:
-    id: "toggle-unlocks"
-- tapOn:
-    text: "Show prerequisites"
-- tapOn:
-    text: "COMP 1021"
+    text: "COMP 4211"

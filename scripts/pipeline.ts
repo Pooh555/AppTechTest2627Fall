@@ -107,10 +107,7 @@ export function dedupeCourses(rows: CatalogRow[]): CanonicalCourse[] {
   return canonical.sort((a, b) => a.code.localeCompare(b.code))
 }
 
-export function joinSections(
-  courses: CanonicalCourse[],
-  sections: ScheduleRow[],
-): ScheduleRow[] {
+export function joinSections(courses: CanonicalCourse[], sections: ScheduleRow[]): ScheduleRow[] {
   const ids = new Set<string>()
   for (const course of courses) {
     for (const term of course.offeredTerms) ids.add(term.course_id)

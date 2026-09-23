@@ -1,85 +1,40 @@
 const palette = {
   neutral100: "#FFFFFF",
-  neutral200: "#F4F2F1",
-  neutral300: "#D7CEC9",
-  neutral400: "#B6ACA6",
-  neutral500: "#978F8A",
-  neutral600: "#564E4A",
-  neutral700: "#3C3836",
-  neutral800: "#191015",
-  neutral900: "#000000",
-
-  primary100: "#F4E0D9",
-  primary200: "#E8C1B4",
-  primary300: "#DDA28E",
-  primary400: "#D28468",
-  primary500: "#C76542",
-  primary600: "#A54F31",
-
-  secondary100: "#DCDDE9",
-  secondary200: "#BCC0D6",
-  secondary300: "#9196B9",
-  secondary400: "#626894",
-  secondary500: "#41476E",
-
-  accent100: "#FFEED4",
-  accent200: "#FFE1B2",
-  accent300: "#FDD495",
-  accent400: "#FBC878",
-  accent500: "#FFBB50",
-
-  angry100: "#F2D6CD",
-  angry500: "#C03403",
-
-  overlay20: "rgba(25, 16, 21, 0.2)",
-  overlay50: "rgba(25, 16, 21, 0.5)",
+  neutral200: "#EEF1F6",
+  neutral300: "#D9DFEA",
+  neutral400: "#A3AFC4",
+  neutral500: "#475569",
+  neutral600: "#0F172A",
+  neutral700: "#1E4FA3",
+  neutral800: "#171F2E",
+  neutral900: "#0E1420",
+  secondary500: "#1E4FA3",
+  accent100: "#FDF0C8",
+  angry100: "#FCE0E0",
+  angry500: "#8F1D1D",
+  overlay50: "rgba(15, 23, 42, 0.5)",
 } as const
 
 export const colors = {
-  /**
-   * The palette is available to use, but prefer using the name.
-   * This is only included for rare, one-off cases. Try to use
-   * semantic names as much as possible.
-   */
   palette,
-  /**
-   * A helper for making something see-thru.
-   */
   transparent: "rgba(0, 0, 0, 0)",
-  /**
-   * The default text color in many components.
-   */
-  text: "#171717",
-  /**
-   * Secondary text information.
-   */
+  background: "#F7F8FA",
+  surface: "#FFFFFF",
+  surfaceMuted: "#EEF1F6",
+  text: "#0F172A",
   textDim: "#475569",
-  /**
-   * The default color of the screen background.
-   */
-  background: "#F8FAFC",
-  /**
-   * The default border color.
-   */
-  border: "#94A3B8",
-  /**
-   * The main tinting color.
-   */
-  tint: "#B45309",
-  /**
-   * The inactive tinting color.
-   */
-  tintInactive: "#64748B",
-  /**
-   * A subtle color used for lines.
-   */
-  separator: "#CBD5E1",
-  /**
-   * Error messages.
-   */
-  error: palette.angry500,
-  /**
-   * Error Background.
-   */
-  errorBackground: palette.angry100,
+  primary: "#1E4FA3",
+  onPrimary: "#FFFFFF",
+  primarySoft: "#E3ECFB",
+  tint: "#1E4FA3",
+  tintInactive: "#475569",
+  separator: "#D9DFEA",
+  border: "#D9DFEA",
+  successBackground: "#DCF5E4",
+  success: "#14532D",
+  warningBackground: "#FDF0C8",
+  warning: "#7A4A00",
+  dangerBackground: "#FCE0E0",
+  error: "#8F1D1D",
+  errorBackground: "#FCE0E0",
 } as const

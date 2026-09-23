@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import { useEffect, useState } from "react"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"

@@ -46,8 +46,7 @@ export function expandPrereq(
   }
 
   const entry = graph[code]
-  const nextCodes =
-    direction === "unlocks" ? (entry?.unlockedBy ?? []) : directCodes(entry)
+  const nextCodes = direction === "unlocks" ? (entry?.unlockedBy ?? []) : directCodes(entry)
   const texts = direction === "prereq" ? (entry?.text ?? []) : []
   const nextAncestors = new Set(ancestors)
   nextAncestors.add(code)

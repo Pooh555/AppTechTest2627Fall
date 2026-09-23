@@ -1,11 +1,4 @@
-import {
-  createContext,
-  FC,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useMemo,
-} from "react"
+import { createContext, FC, PropsWithChildren, useCallback, useContext, useMemo } from "react"
 import { useMMKVString } from "react-native-mmkv"
 
 import { storage } from "@/utils/storage"
@@ -38,9 +31,7 @@ export const FavouritesProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const toggleFavourite = useCallback(
     (code: string) => {
-      const next = codes.includes(code)
-        ? codes.filter((item) => item !== code)
-        : [...codes, code]
+      const next = codes.includes(code) ? codes.filter((item) => item !== code) : [...codes, code]
       setRaw(JSON.stringify(next))
     },
     [codes, setRaw],

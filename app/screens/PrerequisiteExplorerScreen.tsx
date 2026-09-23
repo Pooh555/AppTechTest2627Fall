@@ -21,9 +21,7 @@ export function PrerequisiteExplorerScreen() {
     [route.params.code],
   )
   const empty =
-    direction === "prereq"
-      ? root.tree.type === "empty"
-      : getUnlocks(route.params.code).length === 0
+    direction === "prereq" ? root.tree.type === "empty" : getUnlocks(route.params.code).length === 0
 
   return (
     <Screen preset="scroll" safeAreaEdges={["top"]} contentContainerStyle={themed($screen)}>
@@ -114,7 +112,10 @@ function LazyNode({
       {expanded &&
         (direction === "prereq" && tree.type === "course"
           ? tree
-          : { type: "and", children: children.map((item) => graph[item]?.tree ?? { type: "empty" }) }
+          : {
+              type: "and",
+              children: children.map((item) => graph[item]?.tree ?? { type: "empty" }),
+            }
         ).type !== "empty" && (
           <View style={themed($children)}>
             {children.map((child, index) => (
@@ -124,7 +125,7 @@ function LazyNode({
                 tree={
                   direction === "prereq"
                     ? findCourse(tree, child)
-                    : (graph[child]?.tree as PrereqNode | undefined) ?? { type: "empty" }
+                    : ((graph[child]?.tree as PrereqNode | undefined) ?? { type: "empty" })
                 }
                 direction={direction}
                 depth={depth + 1}

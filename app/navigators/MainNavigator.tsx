@@ -1,14 +1,18 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+
 import { BrowseScreen } from "@/screens/BrowseScreen"
 import { FavouritesScreen } from "@/screens/FavouritesScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
+
 import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
 export function MainNavigator() {
-  const { theme: { colors } } = useAppTheme()
+  const {
+    theme: { colors },
+  } = useAppTheme()
   return (
     <Tab.Navigator
       screenOptions={{

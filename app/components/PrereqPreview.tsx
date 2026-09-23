@@ -1,4 +1,3 @@
-import { ReactNode } from "react"
 import { Pressable, TextStyle, View, ViewStyle } from "react-native"
 
 import type { PrereqNode } from "@/lib/parsePrereq"
