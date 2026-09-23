@@ -12,7 +12,6 @@ let graph: PrereqGraph | undefined
 
 function loadGraph(): PrereqGraph {
   if (!graph) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     graph = require("../../../assets/data/prereq-graph.json") as PrereqGraph
   }
   return graph

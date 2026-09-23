@@ -1,5 +1,14 @@
 import type { PrereqNode } from "./parsePrereq"
-import type { PrereqGraph } from "./prereqWalk"
+
+export type PrereqGraphEntry = {
+  tree?: PrereqNode
+  and: string[]
+  or: string[][]
+  text: string[]
+  unlockedBy: string[]
+}
+
+export type PrereqGraph = Record<string, PrereqGraphEntry>
 
 export type PrereqViewNode =
   | {

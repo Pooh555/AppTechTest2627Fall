@@ -12,7 +12,6 @@ export type MainTabParamList = {
   Favourites: undefined
   Settings: undefined
 }
-export type DemoTabParamList = MainTabParamList
 
 export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>
@@ -29,7 +28,6 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScre
   BottomTabScreenProps<MainTabParamList, T>,
   AppStackScreenProps<keyof AppStackParamList>
 >
-export type DemoTabScreenProps<T extends keyof DemoTabParamList> = MainTabScreenProps<T>
 
 export interface NavigationProps extends Partial<
   ComponentProps<typeof NavigationContainer<AppStackParamList>>

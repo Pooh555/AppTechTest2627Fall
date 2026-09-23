@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useCallback, useState, useEffect, useRef } from "react"
 import { BackHandler, Linking, Platform } from "react-native"
 import {
   NavigationState,
@@ -146,7 +146,7 @@ export function useNavigationPersistence(storage: Storage, persistenceKey: strin
     }
   }
 
-  const restoreState = async () => {
+  const restoreState = useCallback(async () => {
     try {
       const initialUrl = await Linking.getInitialURL()
 
@@ -158,13 +158,11 @@ export function useNavigationPersistence(storage: Storage, persistenceKey: strin
     } finally {
       if (isMounted()) setIsRestored(true)
     }
-  }
+  }, [isMounted, persistenceKey, storage])
 
   useEffect(() => {
-    if (!isRestored) restoreState()
-    // runs once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (!isRestored) void restoreState()
+  }, [isRestored, restoreState])
 
   return { onNavigationStateChange, restoreState, isRestored, initialNavigationState }
 }

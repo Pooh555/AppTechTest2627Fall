@@ -1,5 +1,5 @@
 import { buildView } from "./prereqView"
-import type { PrereqGraph } from "./prereqWalk"
+import type { PrereqGraph } from "./prereqView"
 
 const graph: PrereqGraph = {
   "COMP 1001": {
@@ -33,6 +33,9 @@ describe("buildView", () => {
     const view = buildView("COMP 1001", graph)
     expect(view).toMatchObject({ kind: "group", mode: "all" })
     expect(buildView("COMP 1002", graph)).toMatchObject({ kind: "course", code: "COMP 1001" })
+    expect(view).toMatchObject({
+      children: [{ children: [{ kind: "cycle", code: "COMP 1001" }] }],
+    })
   })
 
   it("caps depth and marks missing catalogue courses", () => {

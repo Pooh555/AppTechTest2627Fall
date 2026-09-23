@@ -1,5 +1,5 @@
-/* eslint-disable react-native/no-inline-styles */
 import { useEffect, useState } from "react"
+import { TextStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
@@ -12,11 +12,14 @@ import { useFavourites } from "@/context/FavouritesContext"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { getLatestTermCode, searchCourses } from "@/services/courses/CourseRepository"
 import type { CourseSummary } from "@/services/courses/types"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 
 export function FavouritesScreen() {
   const db = useSQLiteContext()
   const navigation = useNavigation<AppStackScreenProps<"Main">["navigation"]>()
   const { codes } = useFavourites()
+  const { themed } = useAppTheme()
   const [courses, setCourses] = useState<CourseSummary[]>([])
   useEffect(() => {
     getLatestTermCode(db).then((termCode) =>
@@ -25,7 +28,7 @@ export function FavouritesScreen() {
   }, [codes, db])
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]}>
-      <Text text="Favourites" preset="heading" style={{ padding: 16 }} />
+      <Text text="Favourites" preset="heading" style={themed($heading)} />
       <FlashList
         data={courses}
         keyExtractor={(item) => item.code}
@@ -42,3 +45,5 @@ export function FavouritesScreen() {
     </Screen>
   )
 }
+
+const $heading: ThemedStyle<TextStyle> = ({ spacing }) => ({ padding: spacing.md })

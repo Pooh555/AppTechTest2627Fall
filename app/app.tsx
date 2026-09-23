@@ -1,4 +1,3 @@
-/* eslint-disable import/first */
 /**
  * Welcome to the main entry point of the app. In this file, we'll
  * be kicking off our app.
@@ -10,12 +9,6 @@
  * The app navigation resides in ./app/navigators, so head over there
  * if you're interested in adding screens and navigators.
  */
-if (__DEV__) {
-  // Load Reactotron in development only.
-  // Note that you must be using metro's `inlineRequires` for this to work.
-  // If you turn it off in metro.config.js, you'll have to manually import it.
-  require("./devtools/ReactotronConfig.ts")
-}
 import "./utils/gestureHandler"
 
 import { Suspense, useEffect, useState } from "react"
@@ -39,6 +32,7 @@ import * as storage from "./utils/storage"
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 void SplashScreen.preventAutoHideAsync()
+const bootTheme = createTheme("dark")
 
 const prefix = Linking.createURL("/")
 const linking = {
@@ -118,7 +112,7 @@ export function App() {
 function Splash() {
   return (
     <View style={styles.bootScreen}>
-      <ActivityIndicator color={createTheme("dark").colors.primary} />
+      <ActivityIndicator color={bootTheme.colors.primary} />
     </View>
   )
 }
@@ -137,7 +131,7 @@ function RetryScreen({ onRetry }: { onRetry: () => void }) {
 const styles = StyleSheet.create({
   bootScreen: {
     alignItems: "center",
-    backgroundColor: createTheme("dark").colors.background,
+    backgroundColor: bootTheme.colors.background,
     flex: 1,
     justifyContent: "center",
   },
@@ -145,10 +139,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    padding: 24,
+    padding: bootTheme.spacing.lg,
   },
   retryButton: {
-    marginTop: 16,
-    padding: 16,
+    marginTop: bootTheme.spacing.md,
+    padding: bootTheme.spacing.md,
   },
 })

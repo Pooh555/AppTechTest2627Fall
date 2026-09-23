@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react"
-// eslint-disable-next-line no-restricted-imports
 import { Pressable, TextInput, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"

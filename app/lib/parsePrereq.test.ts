@@ -1,5 +1,4 @@
 import { flattenPrereq, parsePrereq } from "./parsePrereq"
-import { expandPrereq } from "./prereqWalk"
 import courses from "../../courses.json"
 import type { CatalogRow } from "../../scripts/pipeline"
 
@@ -165,32 +164,5 @@ describe("parsePrereq", () => {
     }
     expect(resolved + text).toBeGreaterThan(0)
     console.info(`Prerequisite coverage: resolved=${resolved}, text=${text}`)
-  })
-})
-
-describe("expandPrereq cycle safety", () => {
-  it("renders a cycle leaf instead of recursing infinitely", () => {
-    const graph = {
-      "COMP 1001": {
-        and: ["COMP 1002"],
-        or: [] as string[][],
-        text: [] as string[],
-        unlockedBy: ["COMP 1002"],
-      },
-      "COMP 1002": {
-        and: ["COMP 1001"],
-        or: [] as string[][],
-        text: [] as string[],
-        unlockedBy: ["COMP 1001"],
-      },
-    }
-
-    const tree = expandPrereq(graph, "COMP 1001")
-    expect(tree.code).toBe("COMP 1001")
-    expect(tree.children?.[0]?.code).toBe("COMP 1002")
-    expect(tree.children?.[0]?.children?.[0]).toMatchObject({
-      code: "COMP 1001",
-      kind: "cycle",
-    })
   })
 })

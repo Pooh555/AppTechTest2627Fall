@@ -24,15 +24,23 @@ an Android development build. The same SQLite asset/provider path is used by iOS
 
 ## Architecture and state management
 
-`app/services/courses/CourseRepository.ts` owns all dataset access. Screens receive
-the bundled `expo-sqlite` database through `SQLiteProvider` and call plain async
-repository functions for search, details, sections, and term/department filters.
-The prerequisite graph is a static generated JSON asset loaded by the repository;
-the dataset is deliberately not placed in React Context.
+The app follows one-way layers:
+
+```text
+screens -> hooks -> services/courses -> expo-sqlite
+    \-> components/prereq -> lib/search | lib/prereq | theme registry
+build scripts -> generated SQLite + graph assets
+```
+
+`SQLiteProvider` owns the database handle; screens do not hold dataset state in
+React Context. Hooks own loading/error/stale-request state, services own SQL and
+graph-asset access, and `app/lib` contains pure parser, search-intent, and
+view-model logic. `services/courses/prereqGraph.ts` is the only module that reads
+`prereq-graph.json`.
 
 The only shared UI state is cross-cutting state: `FavouritesContext` persists
-course codes in MMKV, while Ignite's existing `ThemeProvider` persists the light
-/dark override in MMKV. Browse, Favourites, and sections use `@shopify/flash-list`
+course codes in MMKV, while the theme registry persists the selected palette in
+MMKV. Browse, Favourites, and sections use `@shopify/flash-list`
 instead of the demo's `FlatList`, because the catalog contains about 4,000
 canonical courses and up to tens of thousands of section rows.
 
@@ -72,7 +80,9 @@ The script uses `pyarrow` and `huggingface_hub`; install them with
    `courses.rowid`.
 4. Parses prerequisite, corequisite, and exclusion fields and writes
    `assets/data/prereq-graph.json`, including reverse `unlockedBy` edges.
-5. Writes `assets/data/dataset-meta.json` for the Settings screen.
+5. Writes `assets/data/dataset-meta.json` for the Settings screen. The generated
+   database is about 51 MB after external-content FTS and VACUUM; the build
+   prints final artifact sizes so rebuilds can detect accidental growth.
 
 All parsing and SQLite construction happen in the Node build script. No catalog
 preprocessing runs on-device.
@@ -85,11 +95,30 @@ brackets as equivalent groups, preserves explicit AND/OR grouping, and attaches
 grade and “prior to” qualifiers to course nodes. Unresolvable prose remains a
 `text` leaf rather than being guessed as a course.
 
-The explorer starts with direct prerequisite edges, expands only when a node is
-tapped, and carries an ancestor `Set`. A repeated course becomes a non-recursing
-`cycle — jump back` leaf; depth is also capped at eight. The same screen can
-invert the precomputed `unlockedBy` edges to show courses unlocked by the current
-course.
+The parser produces an AST. `PrerequisiteTree` renders its AND/OR semantics
+(`All of` / `One of`) with lazy node expansion, an ancestor `Set`, cycle leaves,
+text leaves, missing nodes, and a depth cap of eight. Unlocks are intentionally
+not another tree: `UnlockList` renders the flat direct dependant list from
+`unlockedBy`. The explorer selects one component at a time, and Course Detail
+shows separate Requires and Unlocks sections.
+
+## Search and themes
+
+Search first classifies normalized input. A known one-to-four-letter course
+prefix such as `comp` uses indexed `courses.prefix`; a prefix plus one-to-four
+digits such as `comp4`, `COMP 42`, or `comp4211` uses indexed `code_compact`.
+One- and two-letter inputs remain text search because they are too ambiguous to
+identify a course family. Other text uses FTS over title and description with
+deterministic exact-code, title-prefix, title-word, description, and code
+tie-breaking tiers. All plans apply term/department filters and limit-plus-one
+pagination.
+
+The theme registry defines Light, Dark, YouTube, Pastel, Sepia, and Midnight,
+plus System selection. Each palette shares one `ColorTokens` interface,
+including semantic seat-status foreground/background pairs. Settings exposes
+accessible radio options with live swatches; the legacy `ignite.themeScheme`
+light/dark value is migrated without data loss. Every palette is covered by a
+WCAG AA contrast test.
 
 ## Assumptions and limitations
 
@@ -111,8 +140,8 @@ course.
 
 Three optional features were selected because they improve the core explorer
 without adding another backend: MMKV favourites for a useful return path,
-light/dark theme persistence for accessibility, and the reverse “what this
-course unlocks” prerequisite view for planning future coursework.
+multiple persisted themes for accessibility and personalization, and the
+reverse “what this course unlocks” view for planning future coursework.
 
 ## Validation
 
@@ -120,8 +149,10 @@ course unlocks” prerequisite view for planning future coursework.
 npm test -- --runInBand
 npm run compile
 npm run depcruise
+npm run test:maestro
 ```
 
-The Maestro flow in `.maestro/flows/CourseExplorer.yaml` covers searching,
-department filtering, opening detail, expanding prerequisites, and navigating to
-the linked course.
+The Maestro flow in `.maestro/flows/CourseExplorer.yaml` covers searching
+`comp4211`, department filtering, opening detail, entering Requires, expanding
+prerequisites, and navigating to the linked course. It requires an installed
+Android/iOS development build and a connected emulator or simulator.

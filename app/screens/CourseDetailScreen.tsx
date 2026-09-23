@@ -1,4 +1,3 @@
-/* eslint-disable react-native/no-inline-styles */
 import { Pressable, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation, useRoute } from "@react-navigation/native"
@@ -14,6 +13,7 @@ import { useCourseDetail } from "@/hooks/useCourseDetail"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { getUnlockedCourses } from "@/services/courses/prereqGraph"
 import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 
 export function CourseDetailScreen() {
   const db = useSQLiteContext()
@@ -50,7 +50,7 @@ export function CourseDetailScreen() {
         ListHeaderComponent={
           <View style={themed($content)}>
             <View style={themed($titleRow)}>
-              <View style={{ flex: 1 }}>
+              <View style={themed($title)}>
                 <Text text={course.code} preset="heading" />
                 <Text text={course.title} />
               </View>
@@ -127,15 +127,16 @@ export function CourseDetailScreen() {
   )
 }
 
-const $content: ViewStyle = { padding: 16 }
+const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({ padding: spacing.md })
 const $titleRow = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   flexDirection: "row" as const,
   gap: spacing.sm,
 })
-const $favourite = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  padding: 4,
+const $favourite = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
+  padding: spacing.xs,
   color: colors.tint,
 })
+const $title: ThemedStyle<ViewStyle> = () => ({ flex: 1 })
 const $muted = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
   color: colors.textDim,
   marginTop: spacing.xxs,
