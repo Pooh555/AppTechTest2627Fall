@@ -1,5 +1,4 @@
 /* eslint-disable react-native/no-inline-styles */
-import { useEffect, useState } from "react"
 import { Pressable, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation, useRoute } from "@react-navigation/native"
@@ -9,9 +8,8 @@ import { PrereqPreview } from "@/components/PrereqPreview"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useFavourites } from "@/context/FavouritesContext"
+import { useCourseDetail } from "@/hooks/useCourseDetail"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { getCourseDetail, getSections } from "@/services/courses/CourseRepository"
-import type { CourseDetail, CourseSection } from "@/services/courses/types"
 import { useAppTheme } from "@/theme/context"
 
 export function CourseDetailScreen() {
@@ -20,29 +18,25 @@ export function CourseDetailScreen() {
   const navigation = useNavigation<AppStackScreenProps<"CourseDetail">["navigation"]>()
   const { themed } = useAppTheme()
   const { hasFavourite, toggleFavourite } = useFavourites()
-  const [course, setCourse] = useState<CourseDetail | null>(null)
-  const [sections, setSections] = useState<CourseSection[]>([])
+  const { course, sections, loading, error } = useCourseDetail(
+    db,
+    route.params.code,
+    route.params.termCode,
+  )
 
-  useEffect(() => {
-    let cancelled = false
-    getCourseDetail(db, route.params.code, route.params.termCode).then((detail) => {
-      if (!detail || cancelled) return
-      setCourse(detail)
-      getSections(db, route.params.code, route.params.termCode ?? detail.canonicalTermCode).then(
-        (nextSections) => {
-          if (!cancelled) setSections(nextSections)
-        },
-      )
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [db, route.params.code, route.params.termCode])
-
-  if (!course)
+  if (loading)
     return (
       <Screen preset="fixed">
         <Text text="Loading course…" />
+      </Screen>
+    )
+  if (error || !course)
+    return (
+      <Screen preset="fixed">
+        <Text text={error ?? "Course not found"} />
+        <Pressable onPress={() => navigation.goBack()} style={themed($button)}>
+          <Text text="Go back" />
+        </Pressable>
       </Screen>
     )
   return (
