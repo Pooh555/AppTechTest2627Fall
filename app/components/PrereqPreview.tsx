@@ -89,7 +89,7 @@ const $chip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $chipText: ThemedStyle<TextStyle> = ({ typography, colors }) => ({
-  fontFamily: typography.code.normal,
+  fontFamily: typography.code?.normal,
   color: colors.text,
 })
 

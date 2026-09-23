@@ -32,7 +32,6 @@ export function DepartmentSheet({
         <FlashList
           data={[{ code: "", nickname: "All departments" }, ...departments]}
           keyExtractor={(item) => item.code || "all"}
-          estimatedItemSize={48}
           renderItem={({ item }) => {
             const code = item.code || null
             const selected = selectedCode === code

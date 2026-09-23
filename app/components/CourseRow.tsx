@@ -54,7 +54,7 @@ const $top: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $code: ThemedStyle<TextStyle> = ({ colors, typography }) => ({
-  fontFamily: typography.code.normal,
+  fontFamily: typography.code?.normal,
   color: colors.text,
   fontSize: 16,
 })
