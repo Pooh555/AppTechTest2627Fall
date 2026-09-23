@@ -33,6 +33,7 @@ type CourseRow = {
   prefix: string
   number: string
   title: string
+  code_compact: string
   description: string | null
   min_credits: number | null
   max_credits: number | null
@@ -88,12 +89,20 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
 }
 
 function toFtsQuery(raw: string): string {
-  const tokens = raw
+  const normalized = raw.replace(/^([a-z]{2,4})(\d{3,4}[a-z]?)$/i, "$1 $2")
+  const tokens = normalized
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .split(/\s+/)
     .map((token) => token.trim())
     .filter((token) => token.length > 0)
-  return tokens.map((token) => `"${token.replace(/"/g, '""')}"*`).join(" AND ")
+  return tokens
+    .map((token) => {
+      const escaped = `"${token.replace(/"/g, '""')}"`
+      return /^\d/.test(token) || /^[a-z]{2,4}\s\d{3,4}[a-z]?$/i.test(token)
+        ? `code:${escaped}*`
+        : `${escaped}*`
+    })
+    .join(" AND ")
 }
 
 function escapeLike(value: string): string {
@@ -191,13 +200,14 @@ export async function searchCourses(
   }
   const filterArgs = [...args]
   sql += query
-    ? " ORDER BY CASE WHEN c.code = ? THEN 0 WHEN c.code LIKE ? ESCAPE '\\' THEN 1 WHEN c.title LIKE ? ESCAPE '\\' THEN 2 ELSE 3 END, bm25(fts, 10, 5, 1) LIMIT ? OFFSET ?"
+    ? " ORDER BY CASE WHEN UPPER(c.code) = UPPER(?) OR UPPER(c.code_compact) = UPPER(?) THEN 0 WHEN UPPER(c.code) LIKE UPPER(?) ESCAPE '\\' OR UPPER(c.code_compact) LIKE UPPER(?) ESCAPE '\\' THEN 1 WHEN c.title LIKE ? ESCAPE '\\' THEN 2 ELSE 3 END, bm25(fts, 10, 5, 1) LIMIT ? OFFSET ?"
     : " ORDER BY c.prefix, c.number LIMIT ? OFFSET ?"
   if (query) {
     const escapedQuery = escapeLike(query)
-    args.push(query.toUpperCase(), `${escapedQuery.toUpperCase()}%`, `%${escapedQuery}%`)
+    const compact = query.replace(/\s+/g, "")
+    args.push(query, compact, `${escapedQuery}%`, `${escapeLike(compact)}%`, `%${escapedQuery}%`)
   }
-  args.push(limit, offset)
+  args.push(limit + 1, offset)
 
   let rows: CourseRow[]
   try {
@@ -214,7 +224,7 @@ export async function searchCourses(
     rows = await db.getAllAsync<CourseRow>(fallbackSql, [
       ...fallbackArgs,
       ...fallback.args,
-      limit,
+      limit + 1,
       offset,
     ])
   }
@@ -223,12 +233,13 @@ export async function searchCourses(
     params.termCode,
     rows.map((row) => row.code),
   )
-  const summaries = rows.map((row) => toSummary(row, seats.get(row.code)))
+  const hasMore = rows.length > limit
+  const summaries = rows.slice(0, limit).map((row) => toSummary(row, seats.get(row.code)))
   if (params.codes && params.codes.length > 0) {
     const order = new Map(params.codes.map((code, index) => [code, index]))
     summaries.sort((a, b) => (order.get(a.code) ?? 0) - (order.get(b.code) ?? 0))
   }
-  return { rows: summaries, hasMore: rows.length === limit }
+  return { rows: summaries, hasMore }
 }
 
 export async function getCourseDetail(
@@ -298,7 +309,12 @@ export async function getSections(
             reservations, status
      FROM sections
      WHERE course_code = ? AND term_code = ?
-     ORDER BY type, number`,
+     ORDER BY CASE type
+       WHEN 'LEC' THEN 0
+       WHEN 'LAB' THEN 1
+       WHEN 'TUT' THEN 2
+       WHEN 'IND' THEN 3
+       ELSE 4 END, number`,
     [code, termCode],
   )
   return rows.map((row) => ({

@@ -9,9 +9,10 @@ import { CourseRow } from "@/components/CourseRow"
 import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { useCourseSearch } from "@/hooks/useCourseSearch"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { searchCourses, getDepartments, getTerms } from "@/services/courses/CourseRepository"
-import type { CourseSummary, DepartmentInfo, TermInfo } from "@/services/courses/types"
+import { getDepartments, getTerms } from "@/services/courses/CourseRepository"
+import type { DepartmentInfo, TermInfo } from "@/services/courses/types"
 import { useAppTheme } from "@/theme/context"
 
 export function BrowseScreen() {
@@ -23,11 +24,20 @@ export function BrowseScreen() {
   const [term, setTerm] = useState<string | null>(null)
   const [departments, setDepartments] = useState<DepartmentInfo[]>([])
   const [terms, setTerms] = useState<TermInfo[]>([])
-  const [courses, setCourses] = useState<CourseSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [sheetVisible, setSheetVisible] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
+  const [metadataError, setMetadataError] = useState<string | null>(null)
+  const {
+    rows: courses,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+  } = useCourseSearch(db, {
+    query,
+    departmentCode: department,
+    termCode: term,
+    limit: 60,
+  })
 
   useEffect(() => {
     Promise.all([getDepartments(db), getTerms(db)])
@@ -37,49 +47,9 @@ export function BrowseScreen() {
         setTerm(nextTerms[0]?.termCode ?? null)
       })
       .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : "Unable to load course data"),
+        setMetadataError(reason instanceof Error ? reason.message : "Unable to load course data"),
       )
   }, [db])
-
-  useEffect(() => {
-    if (terms.length === 0 || !term) return
-    let cancelled = false
-    const timer = setTimeout(() => {
-      setLoading(true)
-      setError(null)
-      searchCourses(db, { query, departmentCode: department, termCode: term, limit: 60, offset: 0 })
-        .then((result) => {
-          if (!cancelled) {
-            setCourses(result.rows)
-            setHasMore(result.hasMore)
-          }
-        })
-        .catch((reason: unknown) => {
-          if (!cancelled) setError(reason instanceof Error ? reason.message : "Search failed")
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false)
-        })
-    }, 120)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [db, department, query, term, terms.length])
-
-  const loadMore = useCallback(() => {
-    if (!hasMore || loading) return
-    searchCourses(db, {
-      query,
-      departmentCode: department,
-      termCode: term,
-      limit: 60,
-      offset: courses.length,
-    }).then((result) => {
-      setCourses((current) => [...current, ...result.rows])
-      setHasMore(result.hasMore)
-    })
-  }, [courses.length, db, department, hasMore, loading, query, term])
 
   const onCoursePress = useCallback(
     (code: string) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined }),
@@ -119,13 +89,15 @@ export function BrowseScreen() {
           ))}
         </View>
       </View>
-      {error ? <Text text={`Course data error: ${error}`} style={themed($error)} /> : null}
+      {metadataError || error ? (
+        <Text text={`Course data error: ${metadataError ?? error}`} style={themed($error)} />
+      ) : null}
       <FlashList
         testID="course-list"
         data={courses}
         keyExtractor={(item) => item.code}
         renderItem={({ item }) => <CourseRow course={item} onPress={onCoursePress} />}
-        onEndReached={loadMore}
+        onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.5}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
