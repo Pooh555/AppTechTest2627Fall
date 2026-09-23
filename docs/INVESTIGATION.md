@@ -82,6 +82,42 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** add explicit `seatUnavailable/onSeatUnavailable` and `seatUnknown/onSeatUnknown` tokens to every palette. The pill now selects a foreground token for all five `SeatStatus` values, with no implicit React Native text color. Also correct shared button pressed/reversed styles to use tested semantic pairs rather than palette aliases with insufficient contrast.
 - **Evidence:** the registry contrast suite now verifies both neutral status pairs, common neutral surfaces, and primary button foreground/background pairs for every concrete theme in addition to the existing semantic status pairs.
 
+## I-11 — Settings helper hierarchy
+
+- **Symptom:** Settings places bundled-term, generation, and dataset-count details as adjacent raw `Text` nodes below the theme picker.
+- **Root cause (confirmed):** `SettingsScreen` uses a single margin-only `$dataset` style and leaves the two following `Text` elements unstyled, so secondary information has no visual hierarchy or shared spacing.
+- **Decision:** group dataset metadata into a themed helper block with `textDim`, semantic `xs` typography, token spacing, and safe-area-aware screen padding.
+- **Evidence:** the current screen contains three sibling metadata `Text` elements; only the first has a style.
+
+## I-12 — Advanced structured course filters
+
+- **Symptom:** Browse supports only one department and one selected term; users cannot filter by open seats or course attributes.
+- **Root cause (confirmed):** `SearchFilters` only contains `termCode` and `departmentCode`; `courses.attributes` is stored as JSON and has no queryable/indexed relation.
+- **Decision:** add a pure `CourseFilters` shape and parameterized search-plan clauses. Generate an indexed `course_attributes(code, attribute)` relation from the existing attribute JSON, and expose a modal filter sheet from Browse.
+- **Evidence:** the bundled database contains Common Core labels such as `CC26`, but has no attribute table or attribute index.
+
+## I-13 — Inline unfavourite action
+
+- **Symptom:** Favorites rows navigate to Course Detail and offer no direct removal action.
+- **Root cause (confirmed):** `CourseRow` accepts only `course` and `onPress`; `FavouritesScreen` does not pass an action slot and only reloads after the MMKV codes array changes.
+- **Decision:** add an optional accessible trailing action to `CourseRow`; Favorites supplies an optimistic removal callback and binds it to `toggleFavourite`.
+- **Evidence:** `FavouritesScreen` renders the same navigation-only row used by Browse.
+
+## I-14 — Bottom tab icons and label sizing
+
+- **Symptom:** Main tabs configure active/inactive colors but no icons, label typography, or safe-area-aware height.
+- **Root cause (confirmed):** `MainNavigator` has no `tabBarIcon`, `tabBarLabelStyle`, or inset-aware `tabBarStyle`; the existing Expo vector-icons package is available through the Expo dependency tree.
+- **Decision:** use `@expo/vector-icons` Ionicons with themed active/inactive colors, typography-derived labels, and bottom inset padding.
+- **Evidence:** `MainNavigator.tsx` only sets `tabBarStyle`, `tabBarActiveTintColor`, and `tabBarInactiveTintColor`; no icon renderer exists.
+
+## I-15 — Final verification of the four-issue pass
+
+- **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.
+- **Filters:** `course_attributes` contains 3,085 normalized attribute rows; the generated attribute index is used by the correlated filter lookup. `EXPLAIN QUERY PLAN` shows indexed lookups for terms, seat aggregates, and attributes.
+- **Favorites:** `CourseRow` exposes an accessible inline action with a 44dp minimum target; the Favorites screen removes the row before the MMKV-backed refresh completes.
+- **Tabs:** Main navigation renders Ionicons, theme tint colors, caption typography, and bottom-inset-aware height.
+- **Validation:** TypeScript, ESLint, Jest, dependency-cruiser, and Prettier pass. Maestro remains unavailable in this environment, so device execution is still pending on a runner with the CLI and app build.
+
 ## I-9 — Duplicated course sections
 
 - **Symptom:** Course detail displays the same `LEC L1` repeatedly with changing enrollment and wait-list values.

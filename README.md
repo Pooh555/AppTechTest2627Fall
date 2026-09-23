@@ -111,7 +111,11 @@ One- and two-letter inputs remain text search because they are too ambiguous to
 identify a course family. Other text uses FTS over title and description with
 deterministic exact-code, title-prefix, title-word, description, and code
 tie-breaking tiers. All plans apply term/department filters and limit-plus-one
-pagination.
+pagination. Browse also exposes an advanced filter sheet for multiple terms,
+open seats, and course attributes. Attributes are normalized into the indexed
+`course_attributes(code, attribute)` table during data generation rather than
+matched with JSON text scans. The filter plan uses parameterized `EXISTS`
+clauses, preserving the same SQLite-only architecture.
 
 The theme registry defines Light, Dark, Crimson, Pastel, Sepia, and Midnight,
 plus System selection. Each palette shares one `ColorTokens` interface,
@@ -119,6 +123,11 @@ including semantic seat-status foreground/background pairs. Settings exposes
 accessible radio options with live swatches; the legacy `ignite.themeScheme`
 light/dark value is migrated without data loss. Every palette is covered by a
 WCAG AA contrast test.
+
+Favorites rows include a direct 44dp remove action, and the bottom navigator
+uses themed Ionicons, caption typography, and safe-area-aware sizing. The
+`@expo/vector-icons` package is supplied by Expo and is explicitly declared
+for the navigator; no separate icon library was added.
 
 The persisted theme mapping is `youtube` (legacy storage value) -> `crimson`;
 the legacy value is accepted only during migration and is never presented as a

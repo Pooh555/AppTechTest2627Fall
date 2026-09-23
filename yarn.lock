@@ -1606,7 +1606,7 @@
   resolved "https://registry.npmjs.org/@expo/sudo-prompt/-/sudo-prompt-9.3.2.tgz"
   integrity sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw==
 
-"@expo/vector-icons@^15.0.2":
+"@expo/vector-icons@^15.0.2", "@expo/vector-icons@^15.1.1":
   version "15.1.1"
   resolved "https://registry.npmjs.org/@expo/vector-icons/-/vector-icons-15.1.1.tgz"
   integrity sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw==
