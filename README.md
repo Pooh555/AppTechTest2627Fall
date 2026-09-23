@@ -104,6 +104,11 @@ shows separate Requires and Unlocks sections.
 
 ## Search and themes
 
+Course details keep the course header and description visible while CILOs,
+prerequisites, unlocks, and sections are collapsed until opened. Each section
+uses an accessible 44dp accordion header. Advanced search selections are
+confirmed with an explicit **Apply** action.
+
 Search first classifies normalized input. A known one-to-four-letter course
 prefix such as `comp` uses indexed `courses.prefix`; a prefix plus one-to-four
 digits such as `comp4`, `COMP 42`, or `comp4211` uses indexed `code_compact`.

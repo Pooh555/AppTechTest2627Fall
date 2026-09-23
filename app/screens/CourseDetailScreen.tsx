@@ -1,9 +1,11 @@
+import { useState } from "react"
 import { Pressable, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
 
+import { CollapsibleSection } from "@/components/CollapsibleSection"
 import { UnlockList } from "@/components/prereq/UnlockList"
 import { PrereqPreview } from "@/components/PrereqPreview"
 import { Screen } from "@/components/Screen"
@@ -21,6 +23,7 @@ export function CourseDetailScreen() {
   const route = useRoute<AppStackScreenProps<"CourseDetail">["route"]>()
   const navigation = useNavigation<AppStackScreenProps<"CourseDetail">["navigation"]>()
   const { themed } = useAppTheme()
+  const [sectionsExpanded, setSectionsExpanded] = useState(false)
   const { hasFavourite, toggleFavourite } = useFavourites()
   const { course, sections, loading, error } = useCourseDetail(
     db,
@@ -43,10 +46,13 @@ export function CourseDetailScreen() {
         />
       </Screen>
     )
+  const unlockedCourses = getUnlockedCourses(course.code)
+  const sectionRows = sections
+
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]}>
       <FlashList
-        data={sections}
+        data={sectionsExpanded ? sectionRows : []}
         keyExtractor={(item) => String(item.id)}
         ListHeaderComponent={
           <View style={themed($content)}>
@@ -79,43 +85,53 @@ export function CourseDetailScreen() {
             />
             {!!course.description && <Text text={course.description} style={themed($section)} />}
             {!!course.cilos.length && (
-              <Text
-                text={`CILOs\n${course.cilos.map((item) => `• ${item.description}`).join("\n")}`}
-                style={themed($section)}
-              />
+              <CollapsibleSection title="CILOs" testID="course-cilos">
+                <Text
+                  text={course.cilos.map((item) => `• ${item.description}`).join("\n")}
+                  style={themed($section)}
+                />
+              </CollapsibleSection>
             )}
-            <Text text="Prerequisites" preset="subheading" />
-            <PrereqPreview
-              node={course.prereqTree}
-              onOpenCourse={(code) =>
-                navigation.push("CourseDetail", { code, termCode: route.params.termCode })
-              }
-            />
-            <Pressable
-              testID="open-prereq-explorer"
-              onPress={() => navigation.navigate("PrerequisiteExplorer", { code: course.code })}
-              style={themed($button)}
-            >
-              <Text text="Open full prerequisite explorer" />
-            </Pressable>
-            <Text text="Unlocks" preset="subheading" style={themed($section)} />
-            {getUnlockedCourses(course.code).length > 0 ? (
-              <UnlockList
-                codes={getUnlockedCourses(course.code).slice(0, 5)}
-                onOpen={(code) =>
+            <CollapsibleSection title="Prerequisites" testID="course-prerequisites">
+              <PrereqPreview
+                node={course.prereqTree}
+                onOpenCourse={(code) =>
                   navigation.push("CourseDetail", { code, termCode: route.params.termCode })
                 }
               />
-            ) : (
-              <Text text="No courses listed." size="xs" style={themed($muted)} />
-            )}
-            {!!course.corequisite && (
-              <Text text={`Corequisites: ${course.corequisite}`} style={themed($section)} />
-            )}
-            {!!course.exclusion && (
-              <Text text={`Exclusions: ${course.exclusion}`} style={themed($section)} />
-            )}
-            <Text text="Sections" preset="subheading" style={themed($section)} />
+              <Pressable
+                testID="open-prereq-explorer"
+                onPress={() => navigation.navigate("PrerequisiteExplorer", { code: course.code })}
+                style={themed($button)}
+              >
+                <Text text="Open full prerequisite explorer" />
+              </Pressable>
+              {!!course.corequisite && (
+                <Text text={`Corequisites: ${course.corequisite}`} style={themed($section)} />
+              )}
+              {!!course.exclusion && (
+                <Text text={`Exclusions: ${course.exclusion}`} style={themed($section)} />
+              )}
+            </CollapsibleSection>
+            <CollapsibleSection title="Unlocks" testID="course-unlocks">
+              {unlockedCourses.length > 0 ? (
+                <UnlockList
+                  codes={unlockedCourses.slice(0, 5)}
+                  onOpen={(code) =>
+                    navigation.push("CourseDetail", { code, termCode: route.params.termCode })
+                  }
+                />
+              ) : (
+                <Text text="No courses listed." size="xs" style={themed($muted)} />
+              )}
+            </CollapsibleSection>
+            <CollapsibleSection
+              title="Sections"
+              testID="course-sections"
+              onExpandedChange={setSectionsExpanded}
+            >
+              {sectionRows.length === 0 ? <EmptyState title="No sections for this term" /> : null}
+            </CollapsibleSection>
           </View>
         }
         renderItem={({ item }) => (
@@ -135,7 +151,7 @@ export function CourseDetailScreen() {
             ))}
           </View>
         )}
-        ListEmptyComponent={<EmptyState title="No sections for this term" />}
+        ListEmptyComponent={null}
       />
     </Screen>
   )

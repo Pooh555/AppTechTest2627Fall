@@ -7,10 +7,12 @@ appId: ${MAESTRO_APP_ID}
     id: "advanced-filter"
 - tapOn: "COMP · Computer Science"
 - tapOn:
-    id: "advanced-filter-done"
+    id: "filter-apply-button"
 - tapOn:
     id: "course-row-COMP-4211"
 - assertVisible: "Prerequisites"
+- tapOn:
+    text: "Expand Prerequisites"
 - tapOn:
     id: "open-prereq-explorer"
 - assertVisible: "Requires"
