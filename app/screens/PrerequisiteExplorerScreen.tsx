@@ -21,7 +21,15 @@ export function PrerequisiteExplorerScreen() {
   const unlocks = useMemo(() => getUnlockedCourses(route.params.code), [route.params.code])
 
   return (
-    <Screen preset="scroll" safeAreaEdges={["top"]} contentContainerStyle={themed($screen)}>
+    <Screen
+      preset="scroll"
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={themed($screen)}
+      ScrollViewProps={{
+        contentContainerStyle: { flexGrow: 1 },
+        showsVerticalScrollIndicator: true,
+      }}
+    >
       <Text text={route.params.code} preset="heading" />
       <View style={themed($segments)}>
         <ModeButton
