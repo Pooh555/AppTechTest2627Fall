@@ -28,4 +28,19 @@ describe("CollapsibleSection", () => {
       expanded: true,
     })
   })
+
+  it("notifies the owner after changing expansion state", () => {
+    const onExpandedChange = jest.fn()
+    const { getByRole } = render(
+      <ThemeProvider>
+        <CollapsibleSection title="Sections" onExpandedChange={onExpandedChange}>
+          <Text text="Sections content" />
+        </CollapsibleSection>
+      </ThemeProvider>,
+    )
+
+    fireEvent.press(getByRole("button", { name: "Expand Sections" }))
+
+    expect(onExpandedChange).toHaveBeenCalledWith(true)
+  })
 })

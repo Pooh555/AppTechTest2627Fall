@@ -187,6 +187,13 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** expand the README with a Mermaid/text architecture diagram, setup matrix, module responsibility table, feature contracts, generated-data workflow, and validation guidance without introducing stale commands.
 - **Evidence:** all documented commands map to scripts in `package.json`; Maestro is explicitly documented as requiring an external CLI and native development build.
 
+## I-27 — Collapsible section render-phase update
+
+- **Reproduction:** opening Course Detail and expanding Sections emitted React's warning that `CourseDetailScreen` was updated while `CollapsibleSection` was rendering.
+- **Root cause (confirmed):** `CollapsibleSection` invoked the owner's `setSectionsExpanded` callback inside the functional updater passed to its own `setExpanded`. React may evaluate that updater during render, so the cross-component state update occurred in a render phase.
+- **Decision:** derive the next value from the current committed `expanded` state, update the local state, then notify the owner from the event handler. Add a regression test for the callback contract.
+- **Evidence:** the callback no longer executes inside a state updater; the focused component test and full Jest suite pass without the warning.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.

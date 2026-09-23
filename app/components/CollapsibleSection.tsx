@@ -27,11 +27,9 @@ export function CollapsibleSection({
 
   const toggle = () => {
     if (Platform.OS !== "web") LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    setExpanded((current) => {
-      const next = !current
-      onExpandedChange?.(next)
-      return next
-    })
+    const next = !expanded
+    setExpanded(next)
+    onExpandedChange?.(next)
   }
 
   return (
