@@ -1,8 +1,8 @@
-import type { FlattenedPrereq } from "./parsePrereq"
+import type { FlattenedPrereq, PrereqNode } from "./parsePrereq"
 
 export type PrereqGraphEntry = FlattenedPrereq & {
   unlockedBy: string[]
-  tree?: unknown
+  tree?: PrereqNode
 }
 
 export type PrereqGraph = Record<string, PrereqGraphEntry>
