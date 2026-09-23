@@ -65,6 +65,14 @@ function extractQualifiers(input: string): { rest: string; meta: QualifierIndex 
       return ` ${code} `
     },
   )
+  rest = rest.replace(
+    /Grade\s+(.+?)\s+or above in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi,
+    (_whole, grade: string, rawCode: string) => {
+      const code = normalizeCourseCode(rawCode)
+      mergeMeta(meta, code, { grade: String(grade).trim() })
+      return ` ${code} `
+    },
+  )
 
   rest = rest.replace(/Pass grade in\s+([A-Z]{2,4}\s?\d{3,4}[A-Z]?)/gi, (_whole, rawCode: string) => {
     const code = normalizeCourseCode(rawCode)
