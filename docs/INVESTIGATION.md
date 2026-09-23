@@ -145,6 +145,20 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** render React Native's standard `ScrollView` on web, while retaining `KeyboardAwareScrollView` on iOS and Android. Disable keyboard-avoiding behavior on web because browsers manage viewport/input behavior themselves.
 - **Evidence:** the web bundle now exports successfully with the platform branch; TypeScript, ESLint, Jest, and Prettier pass after the change.
 
+## I-21 — Course detail content density
+
+- **Symptom:** CILOs, prerequisites, unlocks, and sections were all visible immediately, making course detail screens unnecessarily long and dense.
+- **Root cause (confirmed):** `CourseDetailScreen` rendered each group directly in the FlashList header and had no section expansion state.
+- **Decision:** add a reusable accessible `CollapsibleSection` with 44dp header targets, expanded accessibility state, chevron affordances, and native `LayoutAnimation`. All four groups start collapsed; section rows remain in the existing FlashList and are only supplied as data while Sections is expanded.
+- **Evidence:** the new component test verifies closed-by-default rendering and accessible toggle state; the detail screen now has independent CILOs, Prerequisites, Unlocks, and Sections accordions.
+
+## I-22 — Advanced filter submit nomenclature
+
+- **Symptom:** the filter sheet submit action was labelled “Done”, which did not clearly communicate that selected filters would be applied.
+- **Root cause (confirmed):** `AdvancedFilterSheet` used `testID="advanced-filter-done"` and rendered a “Done” label.
+- **Decision:** rename the action to “Apply”, expose `accessibilityLabel="Apply advanced search filters"`, and use `testID="filter-apply-button"` while retaining the existing apply-through-state and close behavior.
+- **Evidence:** the component test presses the labelled Apply button and verifies `onClose`; the Maestro flow uses the new selector.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.

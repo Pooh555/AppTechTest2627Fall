@@ -82,12 +82,13 @@ export function AdvancedFilterSheet({
           })}
         </ScrollView>
         <Pressable
+          accessibilityLabel="Apply advanced search filters"
           accessibilityRole="button"
           onPress={onClose}
           style={themed($done)}
-          testID="advanced-filter-done"
+          testID="filter-apply-button"
         >
-          <Text text="Done" style={themed($doneText)} />
+          <Text text="Apply" style={themed($doneText)} />
         </Pressable>
       </View>
     </Modal>

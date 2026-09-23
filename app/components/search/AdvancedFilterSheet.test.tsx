@@ -31,4 +31,24 @@ describe("AdvancedFilterSheet", () => {
       departments: [],
     })
   })
+
+  it("applies filters with an explicit Apply action", () => {
+    const onClose = jest.fn()
+    const { getByRole, getByText } = render(
+      <ThemeProvider>
+        <AdvancedFilterSheet
+          visible
+          terms={terms}
+          departments={departments}
+          value={{ terms: [], openSeatsOnly: false, departments: [] }}
+          onApply={jest.fn()}
+          onClose={onClose}
+        />
+      </ThemeProvider>,
+    )
+
+    expect(getByText("Apply")).toBeTruthy()
+    fireEvent.press(getByRole("button", { name: "Apply advanced search filters" }))
+    expect(onClose).toHaveBeenCalled()
+  })
 })
