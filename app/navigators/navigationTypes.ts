@@ -17,7 +17,7 @@ export type DemoTabParamList = MainTabParamList
 export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>
   CourseDetail: { code: string; termCode?: string }
-  PrerequisiteExplorer: { code: string }
+  PrerequisiteExplorer: { code: string; mode?: "requires" | "unlocks" }
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

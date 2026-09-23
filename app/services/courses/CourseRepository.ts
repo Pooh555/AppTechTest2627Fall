@@ -1,9 +1,9 @@
 import type { SQLiteDatabase } from "expo-sqlite"
 
 import { parsePrereq, type PrereqNode } from "@/lib/parsePrereq"
-import type { PrereqGraph } from "@/lib/prereqWalk"
 import { buildSearchPlan, classifyQuery, normalizeQuery } from "@/lib/search/searchIntent"
 
+import { getPrerequisiteGraph, getPrerequisites, getUnlockedCourses } from "./prereqGraph"
 import type {
   Cilo,
   CourseDetail,
@@ -18,16 +18,7 @@ import type {
 } from "./types"
 import datasetMetaJson from "../../../assets/data/dataset-meta.json"
 
-let prereqGraph: PrereqGraph | undefined
 const datasetMeta = datasetMetaJson as DatasetMeta
-
-function loadPrereqGraph(): PrereqGraph {
-  if (!prereqGraph) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    prereqGraph = require("../../../assets/data/prereq-graph.json") as PrereqGraph
-  }
-  return prereqGraph
-}
 
 type CourseRow = {
   code: string
@@ -90,9 +81,8 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[]): T[] {
 }
 
 function graphTree(code: string, fallback: string | null | undefined): PrereqNode {
-  const entry = loadPrereqGraph()[code]
-  if (entry?.tree) return entry.tree as PrereqNode
-  return parsePrereq(fallback)
+  const tree = getPrerequisites(code)
+  return tree.type === "empty" ? parsePrereq(fallback) : tree
 }
 
 function toSummary(row: CourseRow, seatRow?: SeatRow): CourseSummary {
@@ -271,11 +261,11 @@ export function getPrereqTree(code: string): PrereqNode {
 }
 
 export function getUnlocks(code: string): string[] {
-  return loadPrereqGraph()[code]?.unlockedBy ?? []
+  return getUnlockedCourses(code)
 }
 
-export function getPrereqGraph(): PrereqGraph {
-  return loadPrereqGraph()
+export function getPrereqGraph() {
+  return getPrerequisiteGraph()
 }
 
 export async function getLatestTermCode(db: SQLiteDatabase): Promise<string | null> {

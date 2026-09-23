@@ -4,6 +4,7 @@ import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
 
+import { UnlockList } from "@/components/prereq/UnlockList"
 import { PrereqPreview } from "@/components/PrereqPreview"
 import { Screen } from "@/components/Screen"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
@@ -11,6 +12,7 @@ import { Text } from "@/components/Text"
 import { useFavourites } from "@/context/FavouritesContext"
 import { useCourseDetail } from "@/hooks/useCourseDetail"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { getUnlockedCourses } from "@/services/courses/prereqGraph"
 import { useAppTheme } from "@/theme/context"
 
 export function CourseDetailScreen() {
@@ -82,6 +84,17 @@ export function CourseDetailScreen() {
             >
               <Text text="Open full prerequisite explorer" />
             </Pressable>
+            <Text text="Unlocks" preset="subheading" style={themed($section)} />
+            {getUnlockedCourses(course.code).length > 0 ? (
+              <UnlockList
+                codes={getUnlockedCourses(course.code).slice(0, 5)}
+                onOpen={(code) =>
+                  navigation.push("CourseDetail", { code, termCode: route.params.termCode })
+                }
+              />
+            ) : (
+              <Text text="No courses listed." size="xs" style={themed($muted)} />
+            )}
             {!!course.corequisite && (
               <Text text={`Corequisites: ${course.corequisite}`} style={themed($section)} />
             )}

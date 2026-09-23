@@ -36,6 +36,7 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Root cause (confirmed):** the graph shape and traversal direction are interpreted in screens/components. `CourseDetailScreen` shows only a prerequisite preview and has no independent unlock section.
 - **Decision:** isolate graph access in `services/courses/prereqGraph.ts`, use separate prerequisite and unlock view-model builders/components, and make the explorer select one mode component rather than sharing direction-aware recursion.
 - **Evidence:** imports and call sites are mapped in the implementation diff; the new unit tests will exercise mutual/self cycles, depth limits, missing courses, text leaves, OR groups, and unlock dependants independently.
+- **Implemented evidence:** `services/courses/prereqGraph.ts` is now the only JSON loader; `PrerequisiteTree` owns AST expansion and `UnlockList` owns flat dependants. The explorer only selects the two components, and `CourseDetailScreen` renders separate Requires and Unlocks sections.
 
 ## I-4 — Theme selection is limited to light/dark and hard-coded pill colors remain
 
