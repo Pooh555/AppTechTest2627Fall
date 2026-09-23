@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite"
 
+import { deduplicateSlots } from "@/lib/course/deduplicateSlots"
 import { parsePrereq, type PrereqNode } from "@/lib/parsePrereq"
 import { buildSearchPlan, classifyQuery, normalizeQuery } from "@/lib/search/searchIntent"
 
@@ -250,7 +251,10 @@ export async function getSections(
     wait: row.wait,
     consent: row.consent === 1,
     open: row.open === 1,
-    schedules: parseJsonArray(row.schedules, []),
+    schedules: deduplicateSlots(
+      parseJsonArray(row.schedules, []),
+      `${row.course_code}:${row.section}`,
+    ),
     reservations: parseJsonArray(row.reservations, []),
     status: row.status,
   }))

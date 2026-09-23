@@ -52,3 +52,24 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Confirmed risks:** inline styles and file-level eslint disables remain in screens; `AppNavigator` hides native headers; async detail/search logic is partly in screens; `prereqWalk.ts` and the new view model overlap.
 - **Decision:** run the audit last, remove only verified dead code, normalize styles and imports, update README ownership/layer diagrams, and run the full validation plus Maestro flow.
 - **Implemented evidence:** removed the obsolete palette files, demo navigation aliases, direction-aware `prereqWalk`, inline-style disables, and direct list-slot state text. TypeScript, ESLint, Jest, Prettier, and dependency-cruiser pass. Maestro could not execute in this environment because the `maestro` CLI is not installed; the updated flow remains checked in for a device-capable runner.
+
+## I-6 — Duplicated course time slots
+
+- **Symptom:** Course detail renders the decoded `sections.schedules` arrays directly. The generated database contains no duplicate slot signatures inside a single section, but the UI has no defensive normalization if an upstream schedule payload repeats a block.
+- **Root cause (confirmed):** `CourseRepository.getSections` maps raw JSON arrays directly to `CourseSection.schedules`; there is no stable-signature deduplication boundary between SQLite JSON and the display model.
+- **Decision:** add a pure `deduplicateSlots` helper keyed by section identity plus weekday, dates, times, and venue. Apply it once while hydrating sections, preserving legitimate identical times belonging to different sections.
+- **Evidence:** real DB audit found `0` within-section duplicates across the generated asset; the regression test uses an intentionally inflated array to guard the mapping boundary.
+
+## I-7 — Semester selector clipping
+
+- **Symptom:** Browse renders department and all term chips inside a static horizontal `View`; narrow layouts cannot reveal chips beyond the viewport.
+- **Root cause (confirmed):** `BrowseScreen` uses `$filters` with `flexDirection: "row"` and no horizontal scrolling container.
+- **Decision:** use a horizontal `ScrollView` with hidden indicators and themed content padding so all terms remain reachable at 360dp.
+- **Evidence:** current JSX maps all terms into the static `$filters` view; the updated Maestro flow swipes the term selector before asserting Winter.
+
+## I-8 — Theme registry nomenclature
+
+- **Symptom:** the registry exposes the non-stylistic identifier `youtube`.
+- **Root cause (confirmed):** `ThemeId`, registry definitions, and Settings labels all derive from the literal `"youtube"`. Existing migration only handles legacy light/dark values.
+- **Decision:** rename it to `crimson`, migrate stored `youtube` values to `crimson` during provider hydration, and retain all existing palette values. Extend contrast tests and document the mapping.
+- **Evidence:** registry-level WCAG tests already calculate all required contrast pairs; the new test will assert every renamed theme and migration mapping.
