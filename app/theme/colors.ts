@@ -49,31 +49,31 @@ export const colors = {
   /**
    * The default text color in many components.
    */
-  text: palette.neutral800,
+  text: "#171717",
   /**
    * Secondary text information.
    */
-  textDim: palette.neutral600,
+  textDim: "#475569",
   /**
    * The default color of the screen background.
    */
-  background: palette.neutral200,
+  background: "#F8FAFC",
   /**
    * The default border color.
    */
-  border: palette.neutral400,
+  border: "#94A3B8",
   /**
    * The main tinting color.
    */
-  tint: palette.primary500,
+  tint: "#B45309",
   /**
    * The inactive tinting color.
    */
-  tintInactive: palette.neutral300,
+  tintInactive: "#64748B",
   /**
    * A subtle color used for lines.
    */
-  separator: palette.neutral300,
+  separator: "#CBD5E1",
   /**
    * Error messages.
    */
