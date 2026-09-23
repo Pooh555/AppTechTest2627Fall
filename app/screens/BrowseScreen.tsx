@@ -5,18 +5,16 @@ import { useNavigation } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
 
 import { CourseRow } from "@/components/CourseRow"
-import { DepartmentSheet } from "@/components/DepartmentSheet"
 import { Screen } from "@/components/Screen"
 import {
   AdvancedFilterSheet,
   type AdvancedFilterState,
 } from "@/components/search/AdvancedFilterSheet"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
-import { TermSelector } from "@/components/TermSelector"
 import { Text } from "@/components/Text"
 import { useCourseSearch } from "@/hooks/useCourseSearch"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { getCourseAttributes, getDepartments, getTerms } from "@/services/courses/CourseRepository"
+import { getDepartments, getTerms } from "@/services/courses/CourseRepository"
 import type { DepartmentInfo, TermInfo } from "@/services/courses/types"
 import { useAppTheme } from "@/theme/context"
 
@@ -25,17 +23,14 @@ export function BrowseScreen() {
   const navigation = useNavigation<AppStackScreenProps<"Main">["navigation"]>()
   const { themed } = useAppTheme()
   const [query, setQuery] = useState("")
-  const [department, setDepartment] = useState<string | null>(null)
   const [term, setTerm] = useState<string | null>(null)
   const [departments, setDepartments] = useState<DepartmentInfo[]>([])
   const [terms, setTerms] = useState<TermInfo[]>([])
-  const [attributes, setAttributes] = useState<string[]>([])
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilterState>({
     terms: [],
     openSeatsOnly: false,
-    attributes: [],
+    departments: [],
   })
-  const [sheetVisible, setSheetVisible] = useState(false)
   const [advancedSheetVisible, setAdvancedSheetVisible] = useState(false)
   const [metadataError, setMetadataError] = useState<string | null>(null)
   const {
@@ -46,18 +41,16 @@ export function BrowseScreen() {
     loadMore,
   } = useCourseSearch(db, {
     query,
-    departmentCode: department,
     termCode: term,
     filters: advancedFilters,
     limit: 60,
   })
 
   useEffect(() => {
-    Promise.all([getDepartments(db), getTerms(db), getCourseAttributes(db)])
-      .then(([nextDepartments, nextTerms, nextAttributes]) => {
+    Promise.all([getDepartments(db), getTerms(db)])
+      .then(([nextDepartments, nextTerms]) => {
         setDepartments(nextDepartments)
         setTerms(nextTerms)
-        setAttributes(nextAttributes)
         setTerm(nextTerms[0]?.termCode ?? null)
       })
       .catch((reason: unknown) =>
@@ -68,6 +61,12 @@ export function BrowseScreen() {
   const onCoursePress = useCallback(
     (code: string) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined }),
     [navigation, term],
+  )
+  const renderCourse = useCallback(
+    ({ item }: { item: (typeof courses)[number] }) => (
+      <CourseRow course={item} onPress={onCoursePress} />
+    ),
+    [onCoursePress],
   )
 
   return (
@@ -86,19 +85,12 @@ export function BrowseScreen() {
         <AdvancedFilterSheet
           visible={advancedSheetVisible}
           terms={terms}
-          attributes={attributes}
+          departments={departments}
           value={advancedFilters}
           onApply={setAdvancedFilters}
           onClose={() => setAdvancedSheetVisible(false)}
         />
         <View style={themed($filters)}>
-          <Pressable
-            testID="department-filter"
-            onPress={() => setSheetVisible(true)}
-            style={themed($filter)}
-          >
-            <Text text={department ?? "All departments"} size="xs" />
-          </Pressable>
           <Pressable
             testID="advanced-filter"
             onPress={() => setAdvancedSheetVisible(true)}
@@ -108,14 +100,13 @@ export function BrowseScreen() {
               text={
                 advancedFilters.openSeatsOnly ||
                 advancedFilters.terms.length > 0 ||
-                advancedFilters.attributes.length > 0
+                advancedFilters.departments.length > 0
                   ? "Filters applied"
                   : "Filters"
               }
               size="xs"
             />
           </Pressable>
-          <TermSelector terms={terms} selectedTerm={term} onSelect={setTerm} />
         </View>
       </View>
       {metadataError || error ? (
@@ -128,7 +119,7 @@ export function BrowseScreen() {
         testID="course-list"
         data={courses}
         keyExtractor={(item) => item.code}
-        renderItem={({ item }) => <CourseRow course={item} onPress={onCoursePress} />}
+        renderItem={renderCourse}
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.5}
         keyboardShouldPersistTaps="handled"
@@ -143,13 +134,6 @@ export function BrowseScreen() {
             />
           )
         }
-      />
-      <DepartmentSheet
-        visible={sheetVisible}
-        departments={departments}
-        selectedCode={department}
-        onSelect={setDepartment}
-        onClose={() => setSheetVisible(false)}
       />
     </Screen>
   )
