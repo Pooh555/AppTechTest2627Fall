@@ -1,11 +1,12 @@
 import { fireEvent, render } from "@testing-library/react-native"
 
-import type { TermInfo } from "@/services/courses/types"
+import type { DepartmentInfo, TermInfo } from "@/services/courses/types"
 import { ThemeProvider } from "@/theme/context"
 
 import { AdvancedFilterSheet } from "./AdvancedFilterSheet"
 
 const terms: TermInfo[] = [{ termCode: "2610", termName: "Fall 2026-27", termNum: 1 }]
+const departments: DepartmentInfo[] = [{ code: "COMP", nickname: "Computer Science" }]
 
 describe("AdvancedFilterSheet", () => {
   it("reports accessible filter selections", () => {
@@ -15,8 +16,8 @@ describe("AdvancedFilterSheet", () => {
         <AdvancedFilterSheet
           visible
           terms={terms}
-          attributes={["CC26"]}
-          value={{ terms: [], openSeatsOnly: false, attributes: [] }}
+          departments={departments}
+          value={{ terms: [], openSeatsOnly: false, departments: [] }}
           onApply={onApply}
           onClose={jest.fn()}
         />
@@ -27,7 +28,7 @@ describe("AdvancedFilterSheet", () => {
     expect(onApply).toHaveBeenCalledWith({
       terms: [],
       openSeatsOnly: true,
-      attributes: [],
+      departments: [],
     })
   })
 })

@@ -50,7 +50,7 @@ describe("real course search plans", () => {
       {
         terms: ["2610", "2620"],
         openSeatsOnly: true,
-        attributes: ["CC26"],
+        departments: ["COMP", "MATH"],
         limit: 60,
         offset: 0,
       },
@@ -58,7 +58,7 @@ describe("real course search plans", () => {
 
     expect(plan.sql).toContain("course_terms")
     expect(plan.sql).toContain("course_seat_status")
-    expect(plan.sql).toContain("course_attributes")
-    expect(plan.args).toEqual(["2610", "2620", "2610", "2620", "CC26", 61, 0])
+    expect(plan.sql).toContain("c.department_code IN (?,?)")
+    expect(plan.args).toEqual(["2610", "2620", "COMP", "MATH", "2610", "2620", 61, 0])
   })
 })

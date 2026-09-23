@@ -32,9 +32,9 @@ export type SearchFilters = {
   termCode?: string | null
   terms?: string[]
   departmentCode?: string | null
+  departments?: string[]
   codes?: string[]
   openSeatsOnly?: boolean
-  attributes?: string[]
   limit: number
   offset: number
 }
@@ -42,7 +42,7 @@ export type SearchFilters = {
 export type CourseFilters = {
   terms?: string[]
   openSeatsOnly?: boolean
-  attributes?: string[]
+  departments?: string[]
 }
 
 export type SearchPlan = {
@@ -91,6 +91,10 @@ export function buildSearchPlan(intent: SearchIntent, filters: SearchFilters): S
     clauses.push("c.department_code = ?")
     args.push(filters.departmentCode)
   }
+  if (filters.departments?.length) {
+    clauses.push(`c.department_code IN (${filters.departments.map(() => "?").join(",")})`)
+    args.push(...filters.departments)
+  }
   if (filters.codes && filters.codes.length > 0) {
     clauses.push(`c.code IN (${filters.codes.map(() => "?").join(",")})`)
     args.push(...filters.codes)
@@ -106,13 +110,6 @@ export function buildSearchPlan(intent: SearchIntent, filters: SearchFilters): S
     )
     if (terms.length > 0) args.push(...terms)
   }
-  for (const attribute of filters.attributes ?? []) {
-    clauses.push(
-      "EXISTS (SELECT 1 FROM course_attributes ca WHERE ca.code = c.code AND ca.attribute = ?)",
-    )
-    args.push(attribute)
-  }
-
   const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : ""
   return {
     sql: `SELECT c.code, c.prefix, c.number, c.title, c.min_credits, c.max_credits,

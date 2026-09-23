@@ -112,10 +112,9 @@ identify a course family. Other text uses FTS over title and description with
 deterministic exact-code, title-prefix, title-word, description, and code
 tie-breaking tiers. All plans apply term/department filters and limit-plus-one
 pagination. Browse also exposes an advanced filter sheet for multiple terms,
-open seats, and course attributes. Attributes are normalized into the indexed
-`course_attributes(code, attribute)` table during data generation rather than
-matched with JSON text scans. The filter plan uses parameterized `EXISTS`
-clauses, preserving the same SQLite-only architecture.
+departments, and open seats. Department filters use the indexed
+`courses.department_code` column and parameterized `IN (...)` clauses, while
+term and seat filters use indexed `EXISTS` clauses.
 
 The theme registry defines Light, Dark, Crimson, Pastel, Sepia, and Midnight,
 plus System selection. Each palette shares one `ColorTokens` interface,

@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 
-import type { TermInfo } from "@/services/courses/types"
+import type { DepartmentInfo, TermInfo } from "@/services/courses/types"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -9,13 +9,13 @@ import { Text } from "../Text"
 export type AdvancedFilterState = {
   terms: string[]
   openSeatsOnly: boolean
-  attributes: string[]
+  departments: string[]
 }
 
 type AdvancedFilterSheetProps = {
   visible: boolean
   terms: TermInfo[]
-  attributes: string[]
+  departments: DepartmentInfo[]
   value: AdvancedFilterState
   onApply: (value: AdvancedFilterState) => void
   onClose: () => void
@@ -24,7 +24,7 @@ type AdvancedFilterSheetProps = {
 export function AdvancedFilterSheet({
   visible,
   terms,
-  attributes,
+  departments,
   value,
   onApply,
   onClose,
@@ -63,20 +63,20 @@ export function AdvancedFilterSheet({
           >
             <Text text="Open seats only" />
           </Pressable>
-          <Text text="Attributes" style={themed($section)} />
-          {attributes.map((attribute) => {
-            const selected = value.attributes.includes(attribute)
+          <Text text="Departments" style={themed($section)} />
+          {departments.map((department) => {
+            const selected = value.departments.includes(department.code)
             return (
               <Pressable
-                key={attribute}
+                key={department.code}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: selected }}
                 onPress={() =>
-                  onApply({ ...value, attributes: toggle(value.attributes, attribute) })
+                  onApply({ ...value, departments: toggle(value.departments, department.code) })
                 }
                 style={themed([$option, selected && $selected])}
               >
-                <Text text={attribute} />
+                <Text text={`${department.code} · ${department.nickname}`} />
               </Pressable>
             )
           })}

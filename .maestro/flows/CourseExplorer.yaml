@@ -4,15 +4,10 @@ appId: ${MAESTRO_APP_ID}
     id: "course-search"
 - inputText: "comp4211"
 - tapOn:
-    id: "department-filter"
-- swipe:
-    from:
-      id: "term-selector"
-    direction: LEFT
-    duration: 500
-- assertVisible: "Winter"
+    id: "advanced-filter"
+- tapOn: "COMP · Computer Science"
 - tapOn:
-    id: "department-COMP"
+    id: "advanced-filter-done"
 - tapOn:
     id: "course-row-COMP-4211"
 - assertVisible: "Prerequisites"
@@ -23,5 +18,9 @@ appId: ${MAESTRO_APP_ID}
     text: "Expand COMP 4211"
 - tapOn:
     text: "Expand COMP 4211"
+- scrollUntilVisible:
+    element:
+      text: "depth limit"
+    direction: DOWN
 - tapOn:
     text: "COMP 4211"

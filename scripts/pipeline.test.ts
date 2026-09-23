@@ -219,13 +219,6 @@ describe("generated database", () => {
         )
         .all(),
     ).toEqual([{ name: "idx_course_terms_code_term" }, { name: "idx_sections_code_term" }])
-    expect(
-      db
-        .prepare(
-          "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_course_attributes_attribute_code'",
-        )
-        .all(),
-    ).toEqual([{ name: "idx_course_attributes_attribute_code" }])
     db.close()
   })
 })

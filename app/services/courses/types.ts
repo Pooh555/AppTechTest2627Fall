@@ -1,4 +1,5 @@
 import type { PrereqNode } from "@/lib/parsePrereq"
+import type { CourseFilters } from "@/lib/search/searchIntent"
 import type { SeatStatus } from "@/lib/seatStatus"
 
 export type TermInfo = {
@@ -106,11 +107,7 @@ export type SearchCoursesParams = {
   query?: string
   departmentCode?: string | null
   termCode?: string | null
-  filters?: {
-    terms?: string[]
-    openSeatsOnly?: boolean
-    attributes?: string[]
-  }
+  filters?: CourseFilters
   codes?: string[]
   limit?: number
   offset?: number
