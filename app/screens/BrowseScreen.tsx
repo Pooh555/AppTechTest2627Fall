@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { Pressable, TextInput, View, ViewStyle } from "react-native"
+import { Platform, Pressable, TextInput, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
@@ -124,7 +124,7 @@ export function BrowseScreen() {
       ) : null}
       <FlashList
         testID="course-list"
-        style={$list}
+        style={Platform.OS === "web" ? $list : undefined}
         data={courses}
         keyExtractor={(item) => item.code}
         renderItem={renderCourse}

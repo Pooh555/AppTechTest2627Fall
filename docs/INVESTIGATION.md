@@ -201,6 +201,13 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** give fixed screen content `flex: 1` and `minHeight: 0`, and give Browse's FlashList the same bounded flex style. Preserve the scroll-screen `flexGrow` behavior used by long-form screens.
 - **Evidence:** the web layout now has a bounded list viewport; compile, lint, Jest, dependency-cruiser, and formatting checks are required after the change.
 
+## I-29 — Android Browse scrolling regression
+
+- **Reproduction:** after the web viewport fix, open Browse in the Android development build and drag the course list. The native list no longer followed the previously working layout path.
+- **Root cause (confirmed):** the web-only `flex`/`minHeight` constraints added to the fixed wrapper and FlashList were applied to native as well. Android FlashList does not need those browser flex constraints and was affected by the changed measurement hierarchy.
+- **Decision:** retain the web constraints only when `Platform.OS === "web"`; leave Android and iOS on the original fixed-screen and FlashList layout behavior.
+- **Evidence:** the platform branch restores the native styles while preserving the successful web export path. Native device gesture verification still requires the configured Android development environment.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.

@@ -309,6 +309,5 @@ const $innerStyle: ViewStyle = {
 
 const $fixedInnerStyle: ViewStyle = {
   ...$innerStyle,
-  flex: 1,
-  minHeight: 0,
+  ...(Platform.OS === "web" ? { flex: 1, minHeight: 0 } : {}),
 }
