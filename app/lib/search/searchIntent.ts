@@ -80,10 +80,18 @@ export function buildSearchPlan(intent: SearchIntent, filters: SearchFilters): S
     }
   }
 
-  const terms = filters.terms?.length ? filters.terms : filters.termCode ? [filters.termCode] : []
+  // Only scope by term when the user explicitly picked one via the Terms filter.
+  // `filters.termCode` is the screen's ambient "current term" (used for seat-status
+  // lookups elsewhere) and must not silently restrict results when no filter is applied,
+  // or courses with no section in that term vanish even though nothing looks filtered.
+  const terms = filters.terms?.length ? filters.terms : []
   if (terms.length > 0) {
+    // Filter against `sections` (the real per-term schedule), not `course_terms` (the
+    // catalog's nominal offering list). A course can be catalogued for a term without
+    // ever having a scheduled section that term; course_terms doesn't distinguish that,
+    // so it let stale/nominal terms leak through and term chips appeared to do nothing.
     clauses.push(
-      `EXISTS (SELECT 1 FROM course_terms t WHERE t.code = c.code AND t.term_code IN (${terms.map(() => "?").join(",")}))`,
+      `c.code IN (SELECT DISTINCT s.course_code FROM sections s WHERE s.term_code IN (${terms.map(() => "?").join(",")}))`,
     )
     args.push(...terms)
   }

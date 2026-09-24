@@ -9,6 +9,7 @@ import { CollapsibleSection } from "@/components/CollapsibleSection"
 import { UnlockList } from "@/components/prereq/UnlockList"
 import { PrereqPreview } from "@/components/PrereqPreview"
 import { Screen } from "@/components/Screen"
+import { SectionCard } from "@/components/SectionCard"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { Text } from "@/components/Text"
 import { useFavourites } from "@/context/FavouritesContext"
@@ -124,6 +125,15 @@ export function CourseDetailScreen() {
               ) : (
                 <Text text="No courses listed." size="xs" style={themed($muted)} />
               )}
+              <Pressable
+                testID="open-unlock-explorer"
+                onPress={() =>
+                  navigation.navigate("PrerequisiteExplorer", { code: course.code, mode: "unlocks" })
+                }
+                style={themed($button)}
+              >
+                <Text text="Open full prerequisite explorer" />
+              </Pressable>
             </CollapsibleSection>
             <CollapsibleSection
               title="Sections"
@@ -134,23 +144,8 @@ export function CourseDetailScreen() {
             </CollapsibleSection>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={themed($sectionRow)}>
-            <Text text={`${item.type} ${item.section}`} weight="medium" />
-            <Text
-              text={`${item.enroll}/${item.capacity} enrolled · wait ${item.wait} · ${item.open ? "Open" : "Closed"}`}
-              size="xs"
-              style={themed($muted)}
-            />
-            {item.schedules.map((slot, index) => (
-              <Text
-                key={index}
-                text={`${slot.weekday ?? ""} ${slot.time_from ?? ""}-${slot.time_to ?? ""} ${slot.venue_name ?? slot.venue ?? ""}`}
-                size="xs"
-              />
-            ))}
-          </View>
-        )}
+        renderItem={({ item }) => <SectionCard section={item} />}
+        ItemSeparatorComponent={null}
         ListEmptyComponent={null}
       />
     </Screen>
@@ -179,9 +174,4 @@ const $button = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) =
   borderRadius: 8,
   marginTop: spacing.sm,
   padding: spacing.sm,
-})
-const $sectionRow = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  borderTopColor: colors.separator,
-  borderTopWidth: 1,
-  padding: spacing.md,
 })

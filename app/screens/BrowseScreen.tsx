@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
-import { Platform, Pressable, TextInput, View, ViewStyle } from "react-native"
+import { Keyboard, Platform, TextInput, View, ViewStyle } from "react-native"
 import { useSQLiteContext } from "expo-sqlite"
 import { useNavigation } from "@react-navigation/native"
 import { FlashList } from "@shopify/flash-list"
 
 import { CourseRow } from "@/components/CourseRow"
+import { PressableIcon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import {
   AdvancedFilterSheet,
@@ -69,6 +70,14 @@ export function BrowseScreen() {
     (code: string) => navigation.navigate("CourseDetail", { code, termCode: term ?? undefined }),
     [navigation, term],
   )
+  // Dismiss the keyboard before the Modal opens: RN's Android Modal swallows KeyEvent
+  // ACTION_DOWN but forwards ACTION_UP to the host Activity (facebook/react-native#32827),
+  // so a Modal opening while the search TextInput still has focus can leave the Activity's
+  // key-dispatch path in an inconsistent state. Blurring first avoids that overlap entirely.
+  const openAdvancedFilters = useCallback(() => {
+    Keyboard.dismiss()
+    setAdvancedSheetVisible(true)
+  }, [])
   const renderCourse = useCallback(
     ({ item }: { item: (typeof courses)[number] }) => (
       <CourseRow course={item} onPress={onCoursePress} />
@@ -80,15 +89,40 @@ export function BrowseScreen() {
     <Screen preset="fixed" safeAreaEdges={["top"]}>
       <View style={themed($header)}>
         <Text preset="heading" text="Course explorer" />
-        <TextInput
-          testID="course-search"
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search code, title, or description"
-          placeholderTextColor={themed($placeholder).color}
-          style={themed($search)}
-          autoCorrect={false}
-        />
+        <View style={themed($searchRow)}>
+          <TextInput
+            testID="course-search"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search code, title, or description"
+            placeholderTextColor={themed($placeholder).color}
+            style={themed($search)}
+            autoCorrect={false}
+            returnKeyType="search"
+            onSubmitEditing={() => Keyboard.dismiss()}
+          />
+          <PressableIcon
+            testID="advanced-filter"
+            icon="menu"
+            size={20}
+            accessibilityRole="button"
+            accessibilityLabel={
+              advancedFilters.openSeatsOnly ||
+              advancedFilters.terms.length > 0 ||
+              advancedFilters.departments.length > 0
+                ? "Advanced filters, applied"
+                : "Advanced filters"
+            }
+            onPress={openAdvancedFilters}
+            containerStyle={themed(
+              advancedFilters.openSeatsOnly ||
+                advancedFilters.terms.length > 0 ||
+                advancedFilters.departments.length > 0
+                ? [$filterButton, $filterButtonActive]
+                : $filterButton,
+            )}
+          />
+        </View>
         <AdvancedFilterSheet
           visible={advancedSheetVisible}
           terms={terms}
@@ -97,24 +131,6 @@ export function BrowseScreen() {
           onApply={setAdvancedFilters}
           onClose={() => setAdvancedSheetVisible(false)}
         />
-        <View style={themed($filters)}>
-          <Pressable
-            testID="advanced-filter"
-            onPress={() => setAdvancedSheetVisible(true)}
-            style={themed($filter)}
-          >
-            <Text
-              text={
-                advancedFilters.openSeatsOnly ||
-                advancedFilters.terms.length > 0 ||
-                advancedFilters.departments.length > 0
-                  ? "Filters applied"
-                  : "Filters"
-              }
-              size="xs"
-            />
-          </Pressable>
-        </View>
       </View>
       {metadataError || error ? (
         <ErrorState
@@ -152,31 +168,41 @@ const $header = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]): ViewStyl
   paddingTop: spacing.sm,
   paddingBottom: spacing.sm,
 })
+const $searchRow = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]): ViewStyle => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  marginTop: spacing.sm,
+})
 const $search = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
+  flex: 1,
   backgroundColor: colors.palette.neutral100,
   borderColor: colors.separator,
   borderRadius: 10,
   borderWidth: 1,
   color: colors.text,
-  marginTop: spacing.sm,
+  margin: 0,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
 })
 const $placeholder = ({ colors }: ReturnType<typeof useAppTheme>["theme"]) => ({
   color: colors.textDim,
 })
-const $filters = ({ spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
-  flexDirection: "row" as const,
-  alignItems: "center" as const,
-  gap: spacing.xs,
-  marginTop: spacing.sm,
-})
-const $filter = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) => ({
+// 44x44dp hit target (accessibility minimum), icon centered on both axes so it
+// sits vertically centered relative to the search input regardless of font scale.
+const $filterButton = ({ colors }: ReturnType<typeof useAppTheme>["theme"]): ViewStyle => ({
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
   borderColor: colors.separator,
-  borderRadius: 999,
+  borderRadius: 10,
   borderWidth: 1,
-  paddingHorizontal: spacing.sm,
-  paddingVertical: spacing.xs,
+  margin: 0,
+})
+const $filterButtonActive = ({ colors }: ReturnType<typeof useAppTheme>["theme"]): ViewStyle => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.primarySoft,
 })
 const $list: ViewStyle = {
   flex: 1,

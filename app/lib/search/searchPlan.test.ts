@@ -56,9 +56,40 @@ describe("real course search plans", () => {
       },
     )
 
-    expect(plan.sql).toContain("course_terms")
+    expect(plan.sql).toContain("sections")
     expect(plan.sql).toContain("course_seat_status")
     expect(plan.sql).toContain("c.department_code IN (?,?)")
     expect(plan.args).toEqual(["2610", "2620", "COMP", "MATH", "2610", "2620", 61, 0])
+  })
+
+  it("strictly restricts Browse results to courses with a scheduled section in the selected term", () => {
+    const [{ termCode }] = database
+      .prepare(
+        "SELECT term_code AS termCode FROM sections GROUP BY term_code ORDER BY COUNT(*) ASC LIMIT 1",
+      )
+      .all() as { termCode: string }[]
+
+    const unfiltered = codesFor("")
+    const plan = buildSearchPlan(
+      { kind: "TEXT", value: "" },
+      { terms: [termCode], limit: 5000, offset: 0 },
+    )
+    const filteredCodes = database
+      .prepare(plan.sql)
+      .all(...plan.args)
+      .map((row) => (row as { code: string }).code)
+
+    expect(filteredCodes.length).toBeGreaterThan(0)
+    expect(filteredCodes.length).toBeLessThan(unfiltered.length)
+
+    const actualCodesForTerm = new Set(
+      database
+        .prepare("SELECT DISTINCT course_code FROM sections WHERE term_code = ?")
+        .all(termCode)
+        .map((row) => (row as { course_code: string }).course_code),
+    )
+    for (const code of filteredCodes) {
+      expect(actualCodesForTerm.has(code)).toBe(true)
+    }
   })
 })

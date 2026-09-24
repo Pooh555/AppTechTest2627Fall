@@ -88,7 +88,10 @@ not execute raw SQL.
 - **Themes:** `registry.ts` is the source of palette identifiers and semantic
   colors; persisted legacy identifiers are migrated by the theme provider.
 - **Advanced filters:** terms, departments, and open-seat criteria remain
-  typed filter state and become parameterized `EXISTS`/`IN` SQL clauses.
+  typed filter state and become parameterized `IN`/`EXISTS` SQL clauses. Term
+  selection is resolved against `sections` (actual scheduled offerings), not
+  `course_terms` (the catalog's nominal listing), so a term filter only
+  surfaces courses with a real section that term.
 
 `SQLiteProvider` owns the database handle; screens do not hold dataset state in
 React Context. Hooks own loading/error/stale-request state, services own SQL and
@@ -176,8 +179,12 @@ deterministic exact-code, title-prefix, title-word, description, and code
 tie-breaking tiers. All plans apply term/department filters and limit-plus-one
 pagination. Browse also exposes an advanced filter sheet for multiple terms,
 departments, and open seats. Department filters use the indexed
-`courses.department_code` column and parameterized `IN (...)` clauses, while
-term and seat filters use indexed `EXISTS` clauses.
+`courses.department_code` column and parameterized `IN (...)` clauses. Term
+filters use `courses.code IN (SELECT DISTINCT course_code FROM sections WHERE
+term_code IN (...))` — i.e. a course must have an actual scheduled section in
+the selected term, not just a catalog listing for it — backed by
+`idx_sections_term_code(term_code, course_code)`. Seat filters use an indexed
+`EXISTS` clause against `course_seat_status`.
 
 The theme registry defines Light, Dark, Crimson, Pastel, Sepia, and Midnight,
 plus System selection. Each palette shares one `ColorTokens` interface,

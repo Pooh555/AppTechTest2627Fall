@@ -122,6 +122,9 @@ function createSchema(db: Database.Database) {
     );
     CREATE INDEX idx_sections_course_term ON sections(course_id, term_code);
     CREATE INDEX idx_sections_code_term ON sections(course_code, term_code);
+    -- Leading column is term_code to serve the Browse term-filter's
+    -- "SELECT DISTINCT course_code FROM sections WHERE term_code IN (...)" query.
+    CREATE INDEX idx_sections_term_code ON sections(term_code, course_code);
 
     CREATE TABLE course_seat_status (
       course_code TEXT NOT NULL,
