@@ -194,6 +194,13 @@ The deliberate classification decision is that one- and two-letter inputs remain
 - **Decision:** derive the next value from the current committed `expanded` state, update the local state, then notify the owner from the event handler. Add a regression test for the callback contract.
 - **Evidence:** the callback no longer executes inside a state updater; the focused component test and full Jest suite pass without the warning.
 
+## I-28 — Browse home web scrolling
+
+- **Reproduction:** open the Expo web build on Browse with more than one page of courses and attempt to scroll the home list. The fixed `Screen` wrapper and FlashList had no explicit web flex viewport contract.
+- **Root cause (confirmed):** the fixed screen content wrapper used only `flexGrow`, and the Browse FlashList had no flex/min-height style. Web flex layout therefore allowed the list to size to its content instead of constraining it to the remaining viewport.
+- **Decision:** give fixed screen content `flex: 1` and `minHeight: 0`, and give Browse's FlashList the same bounded flex style. Preserve the scroll-screen `flexGrow` behavior used by long-form screens.
+- **Evidence:** the web layout now has a bounded list viewport; compile, lint, Jest, dependency-cruiser, and formatting checks are required after the change.
+
 ## I-15 — Final verification of the four-issue pass
 
 - **Settings:** helper metadata is grouped, dimmed with `textDim`, and spaced with theme tokens.

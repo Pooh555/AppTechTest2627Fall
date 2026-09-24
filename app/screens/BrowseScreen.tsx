@@ -124,6 +124,7 @@ export function BrowseScreen() {
       ) : null}
       <FlashList
         testID="course-list"
+        style={$list}
         data={courses}
         keyExtractor={(item) => item.code}
         renderItem={renderCourse}
@@ -177,3 +178,7 @@ const $filter = ({ colors, spacing }: ReturnType<typeof useAppTheme>["theme"]) =
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
 })
+const $list: ViewStyle = {
+  flex: 1,
+  minHeight: 0,
+}
