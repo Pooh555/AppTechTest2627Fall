@@ -24,10 +24,8 @@ build; Expo Go cannot load the native MMKV module.
    `python scripts/fetch-schedule.py`, then run `npm run build:data`.
 3. Start the web target with `npm run web`, or create a native development
    client with `npm run android` / `npm run ios`.
-4. Run `npm run compile`, `npm run lint:check`, `npm test -- --runInBand`, and
-   `npm run depcruise` before submitting changes.
-5. Run `npm run test:maestro` on a machine with the Maestro CLI and a connected
-   native development build.
+4. Run `npm run compile`, `npm run lint:check`, and `npm test -- --runInBand`
+   before submitting changes.
 
 ## Platforms tested
 
@@ -76,7 +74,6 @@ not execute raw SQL.
 | `app/navigators`       | Stack/tab route definitions and navigation types.                    |
 | `scripts`              | Reproducible schedule trimming and database/graph generation.        |
 | `assets/data`          | Generated SQLite, prerequisite graph, and dataset metadata.          |
-| `.maestro`             | Device-level smoke flows for core search and explorer paths.         |
 | `test`                 | Jest setup and native module test shims.                             |
 
 ### Core feature contracts
@@ -239,11 +236,15 @@ reverse “what this course unlocks” view for planning future coursework.
 ```bash
 npm test -- --runInBand
 npm run compile
-npm run depcruise
-npm run test:maestro
+npm run lint:check
 ```
 
-The Maestro flow in `.maestro/flows/CourseExplorer.yaml` covers searching
-`comp4211`, department filtering, opening detail, entering Requires, expanding
-prerequisites, and navigating to the linked course. It requires an installed
-Android/iOS development build and a connected emulator or simulator.
+Layer boundaries (screens -> hooks -> services/lib, no raw SQL in screens, no
+React imports in `app/lib`) are currently enforced by code review only; no
+`dependency-cruiser` config is checked in yet. There is likewise no automated
+device-level (Maestro or similar) end-to-end flow in this submission — the
+manual smoke test before each change is: search `comp4211`, filter by
+department, open Course Detail, enter Requires, expand a prerequisite, and
+navigate to the linked course. Adding a real `.dependency-cruiser.js` rule set
+and an actual Maestro flow for this path are the two open follow-ups tracked
+for the next iteration.
